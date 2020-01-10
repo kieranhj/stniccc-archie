@@ -10,7 +10,7 @@ DIR <Obey$Dir>
 |SPRITESIZE 0
 |RMKILL MemAlloc 
 |RMLOAD MODULES.LZWD
-RMLOAD PM
-PlayMOD checknobankh
+RMLOAD QTMModule
+QTMLOad Checknobankh
 run !RunImage
-PlayStop
+QTMStop
