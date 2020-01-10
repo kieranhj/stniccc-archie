@@ -1,0 +1,16 @@
+| !run file
+
+|wimpslot -min 744k -max 744k
+DIR <Obey$Dir>
+|RMclear
+|RMLoad Modules.MemAlloc 
+|SCREENSIZE 320K
+|RMASIZE 24K 
+|FONTSIZE 0
+|SPRITESIZE 0
+|RMKILL MemAlloc 
+|RMLOAD MODULES.LZWD
+RMLOAD PM
+PlayMOD checknobankh
+run !RunImage
+PlayStop
