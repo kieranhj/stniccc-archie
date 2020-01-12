@@ -10,3 +10,9 @@ A3020 = 5565 vs = 111.3s = 16.2fps
 A3000 = 7957 vs = 159.14s = 11.3fps
 
 Amiga OCS = 6042vs = 120.84s = 14.9fps
+
+(Wire frame version runs at exactly 25Hz.)
+
+Clear screen w/ 8 registers
+A3020 = &14A4 = 5284 = 105.68s = 17fps
+A3000 = 7477 = 149.54s = 12fps
