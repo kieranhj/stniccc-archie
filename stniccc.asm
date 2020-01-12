@@ -110,7 +110,9 @@ loop:
 	mov r2, #0
 	mov r0, #4
 	mov r1, #319
-	mov r4, #1
+	mov r4, #0x11
+	orr r4, r4, r4, lsl #8
+	orr r4, r4, r4, lsl #16
 
 my_test_loop:
 
@@ -213,14 +215,6 @@ exit:
 	bl debug_write_vsync_count
 
 	SWI OS_Exit
-
-; TODO
-; Simple Bresenham line algo in MODE 9. - DONE
-; Plot up-to 7-sided polygon with lines. - DONE
-; Adapt line draw to 'plot' into span buffers. - DONE
-; Plot polygon into span buffer. - DONE
-; Plot spans on screen. - DONE
-; Load scene1.bin and parse..
 
 ; R12=screen_addr, trashes r7, r8, r9
 screen_cls:
@@ -436,16 +430,16 @@ parse_frame_ptr:
 plot_span:
 	cmp r1, r0
 	movlt r6, r1				; r6 = x_start
-	sublt r4, r0, r1			; r4 = x_start - x_end = x_width when x_start > x_end
+	sublt r3, r0, r1			; r4 = x_start - x_end = x_width when x_start > x_end
 	movge r6, r0				; r6 = x_start
 	subge r3, r1, r0			; r3 = x_end - x_start = x_width
 
 	add r3, r3, #1				; always plot at least one pixel
 
 	; ptr = screen_addr + y * screen_stride + x_start DIV 2
-	mov r11, #Screen_Stride
-	mla r10, r11, r2, r12		; r10 = screen_addr + y * screen_stride
-	add r10, r10, r6, lsr #1	; r10 += x_start DIV 2
+	add r10, r12, r2, lsl #7	; r10 = screen_addr + starty * 128
+	add r10, r10, r2, lsl #5	; r10 += starty * 32 = starty * 160
+	add r10, r10, r6, lsr #1	; r10 += startx DIV 2
 
 	; do all this in bytes for now - this needs to be made 32-bit words for speed!
 
@@ -455,34 +449,63 @@ plot_span:
 
 	ldrb r5, [r10]				; load screen byte
 	and r5, r5, #0x0F			; mask out right hand pixel
-	orr r5, r5, r4, lsl #4		; mask in colour
+	and r11, r4, #0xF0
+	orr r5, r5, r11				; mask in colour
 	strb r5, [r10], #1			; store screen byte
 	subs r3, r3, #1				; decrement width by 1
 	moveq pc, lr				; exit if x_width == 0
 
 .1:
 
-	orr r5, r4, r4, lsl #4		; r5 = colour | colour << 4
-	
-	; main span loop only plots one byte (2 pixels) at a time...
+	; now we need to align r10 to next word
+	ands r5, r10, #3			; r5=number of bytes
+	beq .3
 
+	; plot one byte (2 pixels) at a time until we reach word alignment...
+	rsb r5, r5, #4				; count = 4 - bytes
 .2:
 	cmp r3, #2					; continue until x_width < 2
 	blt .3
 
-	strb r5, [r10], #1			; write two pixels (one byte) to screen, post index
+	strb r4, [r10], #1			; write two pixels (one byte) to screen, post index
 	subs r3, r3, #2				; decrement x_width by 2
 	moveq pc, lr				; exit if x_width == 0
-	b .2
+
+	subs r5, r5, #1				; decement byte count
+	bne .2
 
 .3:
+	; plot word at a time
+	movs r5, r3, lsr #3			; each word = 8 pixels so word count = width/8
+	beq .5
 
+	sub r3, r3, r5, lsl #3		; width -= words * 8
+
+	; plot words
+.4:
+	str r4, [r10], #4			; write 8 pixels (one word) to screen, post index
+	subs r5, r5, #1				; decrement word count
+	bne .4
+
+	; handle remaining bytes
+.5:
+	cmp r3, #2					; continue until x_width < 2
+	blt .6
+
+	strb r4, [r10], #1			; write two pixels (one byte) to screen, post index
+	subs r3, r3, #2				; decrement x_width by 2
 	moveq pc, lr				; exit if x_width == 0
+	b .5
+
+.6:
+	cmp r3, #0
+	moveq pc, lr
 
 	; handle final odd pixel
 	ldrb r5, [r10]				; load screen byte
 	and r5, r5, #0xF0			; mask out left hand pixel
-	orr r5, r5, r4				; mask in colour << 4
+	and r11, r4, #0x0F
+	orr r5, r5, r11				; mask in colour << 4
 	strb r5, [r10]				; store screen byte
 
 	; return
@@ -591,6 +614,10 @@ plot_polygon_span:
 	ldr r7, span_buffer_max_y	; r7 = span_buffer_max_y
 	adrl r9, span_buffer_start
 	adrl r8, span_buffer_end
+
+	orr r4, r4, r4, lsl #4		; r4 = colour | colour << 4
+	orr r4, r4, r4, lsl #8		; r4 = 2 bytes
+	orr r4, r4, r4, lsl #16		; r4 = 4 bytes
 
 .span_loop:
 	ldr r0, [r9, r2, lsl #2]	; r0 = span_buffer_start[y]

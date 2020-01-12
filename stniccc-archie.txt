@@ -4,3 +4,9 @@ STNICCC Acorn Archimedes Port
 Initial speed test.
 A3020 = &1E89 vsyncs = 156.34s = 11.5fps
 A3000 = &2B86 vs = 222.84s = 8.1 fps
+
+Store word in middle of plot_span loop
+A3020 = 5565 vs = 111.3s = 16.2fps
+A3000 = 7957 vs = 159.14s = 11.3fps
+
+Amiga OCS = 6042vs = 120.84s = 14.9fps
