@@ -65,9 +65,23 @@ main:
 	MOV r1, #1
 	STRB r1, [r0]
 
+	; Claim the Event vector
+	mov r0, #EventV
+	adr r1, event_handler
+	mov r2, #0
+	swi OS_Claim
+
 	bl initialise_span_buffer
 
+	; Enable Vsync event
+	mov r0, #14
+	mov r1, #Event_VSync
+	SWI OS_Byte
+
 loop:   
+	; debug
+	bl debug_write_vsync_count
+
 	;Swap banks
 	adrl r0, scr_bank
 	LDRB r1, [r0]
@@ -150,6 +164,22 @@ error_noscreenmem:
 	.align 4
 	.long 0
 
+debug_write_vsync_count:
+	mov r0, #30
+	swi OS_WriteC
+
+	ldr r0, vsync_count
+	adr r1, debug_string
+	mov r2, #8
+	swi OS_ConvertHex4
+
+	adr r0, debug_string
+	swi OS_WriteO
+	mov pc, r14
+
+debug_string:
+	.skip 8
+
 get_screen_addr:
 	STR lr, [sp, #-4]!
 	adrl r0, screen_addr_input
@@ -168,6 +198,19 @@ exit:
 	ADD r1, r1, #1
 	MOV r0, #OSByte_WriteDisplayBank
 	SWI OS_Byte
+
+	; disable vsync event
+	mov r0, #13
+	mov r1, #Event_VSync
+	swi OS_Byte
+
+	; release our event handler
+	mov r0, #EventV
+	adr r1, event_handler
+	mov r2, #0
+	swi OS_Release
+
+	bl debug_write_vsync_count
 
 	SWI OS_Exit
 
@@ -689,6 +732,20 @@ plot_pixel_into_span_buffer:
 	cmp r0, r11					; x > span_buffer_start[y]?
 	strgt r0, [r10, r1, lsl #2]	; span_buffer_end[y] = x
 	mov pc, lr
+
+; R0=event number
+event_handler:
+	cmp r0, #Event_VSync
+	movnes pc, r14
+
+	ldr r12, vsync_count
+	add r12, r12, #1
+	str r12, vsync_count
+
+	movs pc, r14
+
+vsync_count:
+	.long 0
 
 test_poly_data:
 

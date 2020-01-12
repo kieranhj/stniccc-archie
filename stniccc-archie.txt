@@ -1,0 +1,6 @@
+STNICCC Acorn Archimedes Port
+~~~
+
+Initial speed test.
+A3020 = &1E89 vsyncs = 156.34s = 11.5fps
+A3000 = &2B86 vs = 222.84s = 8.1 fps

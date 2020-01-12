@@ -28,3 +28,11 @@
 .equ DynArea_Screen, 2
 
 .equ VD_ScreenStart, 148 
+
+.equ OS_Claim, 0x1f
+.equ OS_Release, 0x20
+.equ OS_AddToVector, 0x47
+.equ EventV, 0x10
+.equ Event_VSync, 4
+
+.equ OS_ConvertHex4, 0xd2
