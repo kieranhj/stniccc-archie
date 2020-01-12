@@ -96,7 +96,7 @@ loop:
 	mov r2, #0
 	mov r0, #4
 	mov r1, #319
-	mov r3, #1
+	mov r4, #1
 
 my_test_loop:
 
@@ -389,15 +389,15 @@ parse_end_of_frame:
 parse_frame_ptr:
 	.long scene1_data_stream
 
-; R0=x_start, R1=x_end, R2=y, r3=colour, R12=screen_addr, trashes r4, r5, r6, r10, r11
+; R0=x_start, R1=x_end, R2=y, r4=colour, R12=screen_addr, trashes r4, r5, r6, r10, r11
 plot_span:
 	cmp r1, r0
 	movlt r6, r1				; r6 = x_start
 	sublt r4, r0, r1			; r4 = x_start - x_end = x_width when x_start > x_end
 	movge r6, r0				; r6 = x_start
-	subge r4, r1, r0			; r4 = x_end - x_start = x_width
+	subge r3, r1, r0			; r3 = x_end - x_start = x_width
 
-	add r4, r4, #1				; always plot at least one pixel
+	add r3, r3, #1				; always plot at least one pixel
 
 	; ptr = screen_addr + y * screen_stride + x_start DIV 2
 	mov r11, #Screen_Stride
@@ -412,23 +412,23 @@ plot_span:
 
 	ldrb r5, [r10]				; load screen byte
 	and r5, r5, #0x0F			; mask out right hand pixel
-	orr r5, r5, r3, lsl #4		; mask in colour
+	orr r5, r5, r4, lsl #4		; mask in colour
 	strb r5, [r10], #1			; store screen byte
-	subs r4, r4, #1				; decrement width by 1
+	subs r3, r3, #1				; decrement width by 1
 	moveq pc, lr				; exit if x_width == 0
 
 .1:
 
-	orr r5, r3, r3, lsl #4		; r5 = colour | colour << 4
+	orr r5, r4, r4, lsl #4		; r5 = colour | colour << 4
 	
 	; main span loop only plots one byte (2 pixels) at a time...
 
 .2:
-	cmp r4, #2					; continue until x_width < 2
+	cmp r3, #2					; continue until x_width < 2
 	blt .3
 
 	strb r5, [r10], #1			; write two pixels (one byte) to screen, post index
-	subs r4, r4, #2				; decrement x_width by 2
+	subs r3, r3, #2				; decrement x_width by 2
 	moveq pc, lr				; exit if x_width == 0
 	b .2
 
@@ -439,7 +439,7 @@ plot_span:
 	; handle final odd pixel
 	ldrb r5, [r10]				; load screen byte
 	and r5, r5, #0xF0			; mask out left hand pixel
-	orr r5, r5, r3				; mask in colour << 4
+	orr r5, r5, r4				; mask in colour << 4
 	strb r5, [r10]				; store screen byte
 
 	; return
@@ -544,7 +544,6 @@ plot_polygon_span:
 
 	bl drawline_into_span_buffer
 
-	mov r3, r4					; r3 = colour
 	ldr r2, span_buffer_min_y	; r2 = span_buffer_min_y
 	ldr r7, span_buffer_max_y	; r7 = span_buffer_max_y
 	adrl r9, span_buffer_start
