@@ -449,25 +449,27 @@ parse_end_of_frame:
 parse_frame_ptr:
 	.long scene1_data_stream
 
-; R0=x_start, R1=x_end, R2=y, r4=colour, R12=screen_addr, trashes r4, r5, r6, r10, r11
+; R0=x_start, R1=x_end, R2=y, r4=colour, R12=screen_addr for line
+; R3=width, R5=temp, R10=writeptr, R11=temp
+; preserves r6, r7, r8, r9
+; no longer handles x_end < x_start for test!!
 plot_span:
-	cmp r1, r0
-	movlt r6, r1				; r6 = x_start
-	sublt r3, r0, r1			; r4 = x_start - x_end = x_width when x_start > x_end
-	movge r6, r0				; r6 = x_start
-	subge r3, r1, r0			; r3 = x_end - x_start = x_width
+;	cmp r1, r0
+;	movlt r6, r1				; r6 = x_start
+;	sublt r3, r0, r1			; r4 = x_start - x_end = x_width when x_start > x_end
+;	movge r6, r0				; r6 = x_start
+;	subge r3, r1, r0			; r3 = x_end - x_start = x_width
 
+	sub r3, r1, r0				; r3 = x_end - x_start = x_width
 	add r3, r3, #1				; always plot at least one pixel
 
 	; ptr = screen_addr + y * screen_stride + x_start DIV 2
-	add r10, r12, r2, lsl #7	; r10 = screen_addr + starty * 128
-	add r10, r10, r2, lsl #5	; r10 += starty * 32 = starty * 160
-	add r10, r10, r6, lsr #1	; r10 += startx DIV 2
+	add r10, r12, r0, lsr #1	; r10 += startx DIV 2
 
 	; do all this in bytes for now - this needs to be made 32-bit words for speed!
 
 	; handle first odd pixel
-	ands r5, r6, #1				; is x_start odd?
+	ands r5, r0, #1				; is x_start odd?
 	beq .1
 
 	ldrb r5, [r10]				; load screen byte
@@ -582,9 +584,6 @@ drawline_into_span_buffer:
 
 	add r9, r5, r6				; r9 = dx + dy = err
 
-	adrl r11, span_buffer_start
-	adrl r12, span_buffer_end
-
 .1:
 	; Only really need to update the span extents when changing to a new line
 	ldr r10, [r11, r1, lsl #2]	; span_buffer_start[y]
@@ -614,6 +613,9 @@ drawline_into_span_buffer:
 plot_polygon_span:
 	str lr, [sp, #-4]!			; push lr on stack
 	str r1, plot_polygon_ptr
+
+	adrl r11, span_buffer_start
+	adrl r12, span_buffer_end
 
 	ldmia r1, {r2-r3}
 	str r2, plot_polygon_x0
@@ -652,12 +654,15 @@ plot_polygon_span:
 	orr r4, r4, r4, lsl #16		; r4 = 4 bytes
 
 	ldr r12, screen_addr		; R12=generic screen_addr ptr
+	add r12, r12, r2, lsl #7	; r10 = screen_addr + starty * 128
+	add r12, r12, r2, lsl #5	; r10 += starty * 32 = starty * 160
 
 .span_loop:
 	ldr r0, [r9, r2, lsl #2]	; r0 = span_buffer_start[y]
 	ldr r1, [r8, r2, lsl #2]	; r1 = span_buffer_end[y]
 
 	bl plot_span
+	add r12, r12, #160
 
 	; reset the span buffer
 	mov r0, #256
