@@ -103,10 +103,10 @@ loop:
 	;Back buffer address stored at screen_addr
 
 	;Do stuff here!
-	adrl r0, screen_addr
-	ldr r12, [r0]			; R12=generic screen_addr ptr
 
 .if 0
+	ldr r12, screen_addr			; R12=generic screen_addr ptr
+
 	mov r2, #0
 	mov r0, #4
 	mov r1, #319
@@ -218,7 +218,7 @@ exit:
 
 ; R12=screen_addr, trashes r7, r8, r9
 screen_cls:
-	mov r8, r12
+	ldr r8, screen_addr
 	add r9, r8, #Screen_Bytes
 
 	mov r0, #0
@@ -552,9 +552,10 @@ initialise_span_buffer:
 	blt .1
 	mov pc, lr
 
-; R0=startx, R1=starty, R2=endx, R3=endy, R4=colour, R12=screen_addr
+; R0=startx, R1=starty, R2=endx, R3=endy, R4=colour (preserve)
+; R5=dx, R6=dy, R7=sx, R8=sy, R9=err, R10=e2/addr/temp
+; R11=span_buffer_start, R12=span_buffer_end
 drawline_into_span_buffer:
-	str lr, [sp, #-4]!			; push lr on stack
 
 	ldr r5, span_buffer_min_y
 	cmp r1, r5					; starty < min_y?
@@ -581,14 +582,22 @@ drawline_into_span_buffer:
 
 	add r9, r5, r6				; r9 = dx + dy = err
 
+	adrl r11, span_buffer_start
+	adrl r12, span_buffer_end
+
 .1:
-	; there will be faster line plot algorithms by keeping track of
-	; screen pointer then flushing a byte or word when moving to next row
-	bl plot_pixel_into_span_buffer
+	; Only really need to update the span extents when changing to a new line
+	ldr r10, [r11, r1, lsl #2]	; span_buffer_start[y]
+	cmp r0, r10					; x < span_buffer_start[y]?
+	strlt r0, [r11, r1, lsl #2]	; span_buffer_start[y] = x
+
+	ldr r10, [r12, r1, lsl #2]	; span_buffer_end[y]
+	cmp r0, r10					; x > span_buffer_start[y]?
+	strgt r0, [r12, r1, lsl #2]	; span_buffer_end[y] = x
 
 	cmp r0, r2					; x0 == x1?
 	cmpeq r1, r3				; y0 == y1?
-	ldreq pc, [sp], #4			; rts
+	moveq pc, lr				; rts
 
 	mov r10, r9, lsl #1			; r10 = err * 2
 	cmp r10, r6					; e2 >= dy?
@@ -641,6 +650,8 @@ plot_polygon_span:
 	orr r4, r4, r4, lsl #4		; r4 = colour | colour << 4
 	orr r4, r4, r4, lsl #8		; r4 = 2 bytes
 	orr r4, r4, r4, lsl #16		; r4 = 4 bytes
+
+	ldr r12, screen_addr		; R12=generic screen_addr ptr
 
 .span_loop:
 	ldr r0, [r9, r2, lsl #2]	; r0 = span_buffer_start[y]

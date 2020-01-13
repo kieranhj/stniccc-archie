@@ -16,3 +16,9 @@ Amiga OCS = 6042vs = 120.84s = 14.9fps
 Clear screen w/ 8 registers
 A3020 = &14A4 = 5284 = 105.68s = 17fps
 A3000 = 7477 = 149.54s = 12fps
+
+Target = 5454 (&154E) vs for 15fps w/ music on A3000
+A3020 target = 3636
+
+Simplify drawline into span buffer loop
+A3020 = 4641
