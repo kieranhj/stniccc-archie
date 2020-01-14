@@ -7,8 +7,12 @@
 .equ Screen_Mode, 9
 .equ Screen_Width, 320
 .equ Screen_Height, 256
+.equ Window_Width, 256
+.equ Window_Height, 200
 .equ Screen_Stride, Screen_Width/2		; 4bpp
 .equ Screen_Bytes, Screen_Stride*Screen_Height
+.equ Window_Stride, Screen_Width/2		; 4bpp
+.equ Window_Bytes, Window_Stride*Window_Height
 
 .include "swis.h.asm"
 
@@ -244,7 +248,7 @@ vsync_count:
 ; R12=screen_addr, trashes r7, r8, r9
 screen_cls:
 	ldr r8, screen_addr
-	add r9, r8, #Screen_Bytes
+	add r9, r8, #Window_Bytes
 
 	mov r0, #0
 	mov r1, #0
@@ -259,19 +263,12 @@ screen_cls:
 	stmia r8!, {r0-r7}
 	stmia r8!, {r0-r7}
 	stmia r8!, {r0-r7}
+	add r8, r8, #32
 	stmia r8!, {r0-r7}
 	stmia r8!, {r0-r7}
 	stmia r8!, {r0-r7}
 	stmia r8!, {r0-r7}
-	mov r0,r0				; WTF?
-	stmia r8!, {r0-r7}
-	stmia r8!, {r0-r7}
-	stmia r8!, {r0-r7}
-	stmia r8!, {r0-r7}
-	stmia r8!, {r0-r7}
-	stmia r8!, {r0-r7}
-	stmia r8!, {r0-r7}
-	stmia r8!, {r0-r7}
+	add r8, r8, #32
 	cmp r8, r9
 	blt .1
 
