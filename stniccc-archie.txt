@@ -29,3 +29,7 @@ A3020 = 4514
 Handle long span as mask + words + mask
 A3020 = 4232
 A3000 = 6019 = 15fps
+
+Unroll 40x span fns to plot w/ 5x words at a time
+A3000 = 5903 = 15.2fps
+A3020 = 4075 = 22.1fps

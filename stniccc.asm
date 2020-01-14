@@ -2,6 +2,8 @@
 ; AREA   ASM$$Code,Code,ReadOnly
 ; ENTRY Start
 
+.equ _UNROLL_SPAN, 1
+
 .equ Screen_Mode, 9
 .equ Screen_Width, 320
 .equ Screen_Height, 256
@@ -224,6 +226,20 @@ exit:
 	bl debug_write_vsync_count
 
 	SWI OS_Exit
+
+; R0=event number
+event_handler:
+	cmp r0, #Event_VSync
+	movnes pc, r14
+
+	ldr r12, vsync_count
+	add r12, r12, #1
+	str r12, vsync_count
+
+	movs pc, r14
+
+vsync_count:
+	.long 0
 
 ; R12=screen_addr, trashes r7, r8, r9
 screen_cls:
@@ -496,20 +512,28 @@ plot_span:
 
 	; plot word at a time
 	movs r5, r3, lsr #3			; each word = 8 pixels so word count = width/8
-	beq .5
+	beq plot_span_last_word
 
 	sub r3, r3, r5, lsl #3		; width -= words * 8
 
+.if _UNROLL_SPAN
+	adrl r1, span_jump_table - 4
+	add r0, r1, r5, lsl #2
+	mov pc, r0
+	return_here_from_jump:
+.else
 	; plot words
+	; max 40 words
 .4:
 	str r4, [r10], #4			; write 8 pixels (one word) to screen, post index
 	subs r5, r5, #1				; decrement word count
 	bne .4
+.endif
 
 	; handle remaining word
-.5:
+plot_span_last_word:
 	cmp r3, #0
-	moveq pc, lr
+	moveq pc, lr				; rts
 
 	; find table
 	adrl r5, short_pixel_1 - 64
@@ -523,7 +547,7 @@ plot_span:
 	str r1, [r10], #4
 
 	; return
-	mov pc, lr
+	mov pc, lr					; rts
 
 initialise_span_buffer:
 	mov r0, #0
@@ -868,20 +892,79 @@ plot_short_span:
 
 	mov pc, lr
 
+; can use R0, R1, R4, R5, R11 (at the moment)
+.macro plot_span_X num_pixels
 
-; R0=event number
-event_handler:
-	cmp r0, #Event_VSync
-	movnes pc, r14
+plot_span_\num_pixels:
+	.if \num_pixels > 1
+	mov r0, r4
+	.endif
+	.if \num_pixels > 2
+	mov r1, r4
+	.endif
+	.if \num_pixels > 3
+	mov r5, r4
+	.endif
+	.if \num_pixels > 4
+	mov r11, r4
+	.endif
 
-	ldr r12, vsync_count
-	add r12, r12, #1
-	str r12, vsync_count
+	.set fives, (\num_pixels / 5)
+	.rept fives
+	stmia r10!, {r0, r1, r4, r5, r11}	; 5x words
+	.endr
 
-	movs pc, r14
+	.set words, (\num_pixels - fives * 5)
+	.if words == 1
+	str r4, [r10], #4					; 1x word
+	.endif
 
-vsync_count:
-	.long 0
+	.if words == 2
+	stmia r10!, {r0, r4}				; 2x words
+	.endif
+
+	.if words == 3
+	stmia r10!, {r0, r1, r4}			; 3x words
+	.endif
+
+	.if words == 4
+	stmia r10!, {r0, r1, r4, r5}		; 4x words
+	.endif
+
+	b return_here_from_jump
+.endm
+
+.if _UNROLL_SPAN
+
+.irp my_width, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+plot_span_X \my_width
+.endr
+.irp my_width, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20
+plot_span_X \my_width
+.endr
+.irp my_width, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30
+plot_span_X \my_width
+.endr
+.irp my_width, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40
+plot_span_X \my_width
+.endr
+
+; This is relocatable but could be changed to .long plot_span_\my_width
+span_jump_table:
+	.irp my_width, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+	b plot_span_\my_width
+	.endr
+	.irp my_width, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20
+	b plot_span_\my_width
+	.endr
+	.irp my_width, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30
+	b plot_span_\my_width
+	.endr
+	.irp my_width, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40
+	b plot_span_\my_width
+	.endr
+
+.endif
 
 test_poly_data:
 
