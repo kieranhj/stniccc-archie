@@ -86,7 +86,7 @@ main:
 
 loop:   
 	; debug
-	bl debug_write_vsync_count
+	;bl debug_write_vsync_count
 
 	;Swap banks
 	adrl r0, scr_bank
