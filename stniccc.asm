@@ -464,14 +464,14 @@ parse_frame_ptr:
 ; no longer handles x_end < x_start for test!!
 plot_span:
 
+	; ptr = screen_addr + y * screen_stride + x_start DIV 2
+	add r10, r12, r0, lsr #1	; r10 += startx DIV 2
+
 	sub r3, r1, r0				; r3 = x_end - x_start = x_width
 	add r3, r3, #1				; always plot at least one pixel
 
 	cmp r3, #9
 	ble plot_short_span
-
-	; ptr = screen_addr + y * screen_stride + x_start DIV 2
-	add r10, r12, r0, lsr #1	; r10 += startx DIV 2
 
 	ands r0, r0, #7				; r0=pixel offset [0-7]
 	beq .1						; already aligned
@@ -513,10 +513,9 @@ plot_span:
 
 	; find table
 	adrl r5, short_pixel_1 - 64
-	add r5, r5, r3, lsl #6		; r5 = short_pixel_1 + width * 16 * 4
 
 	; read mask word 0
-	ldr r11, [r5]				; r11 = start_word_pixel_masks[pixels to plot * 4]
+	ldr r11, [r5, r3, lsl #6]	; r11 = start_word_pixel_masks[pixels to plot * 4]
 	ldr r1, [r10]				; r1 = screen word
 	bic r1, r1, r11				; mask screen word
 	and r0, r4, r11				; mask colour word
@@ -841,8 +840,6 @@ start_word_pixel_masks:
 ; preserves r6, r7, r8, r9
 plot_short_span:
 
-	; ptr = screen_addr + y * screen_stride + x_start DIV 2
-	add r10, r12, r0, lsr #1	; r10 += startx DIV 2
 	bic r10, r10, #3			; nearest word
 	and r0, r0, #7				; r0=pixel offset [0-7]
 
