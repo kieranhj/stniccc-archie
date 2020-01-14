@@ -108,21 +108,30 @@ loop:
 	ldr r12, screen_addr			; R12=generic screen_addr ptr
 
 	mov r2, #0
-	mov r0, #4
-	mov r1, #319
+	mov r6, #121
+	mov r7, #319
 	mov r4, #0x11
 	orr r4, r4, r4, lsl #8
 	orr r4, r4, r4, lsl #16
 
 my_test_loop:
 
+	cmp r6, r7
+	movle r0, r6
+	movle r1, r7
+	movgt r0, r7
+	movgt r1, r6
+
 	bl plot_span
 
-	add r0, r0, #1
-	sub r1, r1, #1
+	add r12, r12, #160
+;	add r6, r6, #1
+	sub r7, r7, #1
 	add r2, r2, #1
 	cmp r2, #256
 	bne my_test_loop
+
+	ldr r12, screen_addr			; R12=generic screen_addr ptr
 
 	mov r0, #0
 	mov r1, #128
@@ -454,19 +463,15 @@ parse_frame_ptr:
 ; preserves r6, r7, r8, r9
 ; no longer handles x_end < x_start for test!!
 plot_span:
-;	cmp r1, r0
-;	movlt r6, r1				; r6 = x_start
-;	sublt r3, r0, r1			; r4 = x_start - x_end = x_width when x_start > x_end
-;	movge r6, r0				; r6 = x_start
-;	subge r3, r1, r0			; r3 = x_end - x_start = x_width
 
 	sub r3, r1, r0				; r3 = x_end - x_start = x_width
 	add r3, r3, #1				; always plot at least one pixel
 
+	cmp r3, #9
+	ble plot_short_span
+
 	; ptr = screen_addr + y * screen_stride + x_start DIV 2
 	add r10, r12, r0, lsr #1	; r10 += startx DIV 2
-
-	; do all this in bytes for now - this needs to be made 32-bit words for speed!
 
 	; handle first odd pixel
 	ands r5, r0, #1				; is x_start odd?
@@ -662,7 +667,7 @@ plot_polygon_span:
 	ldr r1, [r8, r2, lsl #2]	; r1 = span_buffer_end[y]
 
 	bl plot_span
-	add r12, r12, #160
+	add r12, r12, #160			; move ptr to start address of next line
 
 	; reset the span buffer
 	mov r0, #256
@@ -786,18 +791,97 @@ plot_pixel:
 	strb r11, [r10]				; store screen byte
 	mov pc, lr
 
-; R0=x, R1=y, trashes r10, r11
-plot_pixel_into_span_buffer:
-	adrl r10, span_buffer_start
-	ldr r11, [r10, r1, lsl #2]	; span_buffer_start[y]
-	cmp r0, r11					; x < span_buffer_start[y]?
-	strlt r0, [r10, r1, lsl #2]	; span_buffer_start[y] = x
+; One pixel:
+short_pixel_1:
+; Offset                      0                       1                       2                       3
+.long    0x0000000F, 0x00000000, 0x000000F0, 0x00000000, 0x00000F00, 0x00000000, 0x0000F000, 0x00000000
+;                             4                       5                       6                       7
+.long	 0x000F0000, 0x00000000, 0x00F00000, 0x00000000, 0x0F000000, 0x00000000, 0xF0000000, 0x00000000
 
-	adrl r10, span_buffer_end
-	ldr r11, [r10, r1, lsl #2]	; span_buffer_end[y]
-	cmp r0, r11					; x > span_buffer_start[y]?
-	strgt r0, [r10, r1, lsl #2]	; span_buffer_end[y] = x
+short_pixel_2:
+; Offset                      0                       1                       2                       3
+.long    0x000000FF, 0x00000000, 0x00000FF0, 0x00000000, 0x0000FF00, 0x00000000, 0x000FF000, 0x00000000
+;                             4                       5                       6                       7
+.long	 0x00FF0000, 0x00000000, 0x0FF00000, 0x00000000, 0xFF000000, 0x00000000, 0xF0000000, 0x0000000F
+
+short_pixel_3:
+; Offset                      0                       1                       2                       3
+.long    0x00000FFF, 0x00000000, 0x0000FFF0, 0x00000000, 0x000FFF00, 0x00000000, 0x00FFF000, 0x00000000
+;                             4                       5                       6                       7
+.long	 0x0FFF0000, 0x00000000, 0xFFF00000, 0x00000000, 0xFF000000, 0x0000000F, 0xF0000000, 0x000000FF
+
+short_pixel_4:
+; Offset                      0                       1                       2                       3
+.long    0x0000FFFF, 0x00000000, 0x000FFFF0, 0x00000000, 0x00FFFF00, 0x00000000, 0x0FFFF000, 0x00000000
+;                             4                       5                       6                       7
+.long	 0xFFFF0000, 0x00000000, 0xFFF00000, 0x0000000F, 0xFF000000, 0x000000FF, 0xF0000000, 0x00000FFF
+
+short_pixel_5:
+; Offset                      0                       1                       2                       3
+.long    0x000FFFFF, 0x00000000, 0x00FFFFF0, 0x00000000, 0x0FFFFF00, 0x00000000, 0xFFFFF000, 0x00000000
+;                             4                       5                       6                       7
+.long	 0xFFFF0000, 0x0000000F, 0xFFF00000, 0x000000FF, 0xFF000000, 0x00000FFF, 0xF0000000, 0x0000FFFF
+
+short_pixel_6:
+; Offset                      0                       1                       2                       3
+.long    0x00FFFFFF, 0x00000000, 0x0FFFFFF0, 0x00000000, 0xFFFFFF00, 0x00000000, 0xFFFFF000, 0x0000000F
+;                             4                       5                       6                       7
+.long	 0xFFFF0000, 0x000000FF, 0xFFF00000, 0x00000FFF, 0xFF000000, 0x0000FFFF, 0xF0000000, 0x000FFFFF
+
+short_pixel_7:
+; Offset                      0                       1                       2                       3
+.long    0x0FFFFFFF, 0x00000000, 0xFFFFFFF0, 0x00000000, 0xFFFFFF00, 0x0000000F, 0xFFFFF000, 0x000000FF
+;                             4                       5                       6                       7
+.long	 0xFFFF0000, 0x00000FFF, 0xFFF00000, 0x0000FFFF, 0xFF000000, 0x000FFFFF, 0xF0000000, 0x00FFFFFF
+
+short_pixel_8:
+; Offset                      0                       1                       2                       3
+.long    0xFFFFFFFF, 0x00000000, 0xFFFFFFF0, 0x0000000F, 0xFFFFFF00, 0x000000FF, 0xFFFFF000, 0x00000FFF
+;                             4                       5                       6                       7
+.long	 0xFFFF0000, 0x0000FFFF, 0xFFF00000, 0x000FFFFF, 0xFF000000, 0x00FFFFFF, 0xF0000000, 0x0FFFFFFF
+
+short_pixel_9:
+; Offset                      0                       1                       2                       3
+.long    0xFFFFFFFF, 0x0000000F, 0xFFFFFFF0, 0x000000FF, 0xFFFFFF00, 0x00000FFF, 0xFFFFF000, 0x0000FFFF
+;                             4                       5                       6                       7
+.long	 0xFFFF0000, 0x000FFFFF, 0xFFF00000, 0x00FFFFFF, 0xFF000000, 0x0FFFFFFF, 0xF0000000, 0xFFFFFFFF
+
+; In two words we can plot up to 9 pixels w/ shift of 7 pixels
+; R0=xstart, R3=width, R4=colour, R12=screen line address
+; R5=temp, R11=temp, R10=writeptr
+; preserves r6, r7, r8, r9
+plot_short_span:
+
+	; ptr = screen_addr + y * screen_stride + x_start DIV 2
+	add r10, r12, r0, lsr #1	; r10 += startx DIV 2
+	bic r10, r10, #3			; nearest word
+	and r0, r0, #7				; r0=pixel offset [0-7]
+
+	; find table
+	adrl r5, short_pixel_1 - 64
+	add r5, r5, r3, lsl #6		; r5 = short_pixel_1 + width * 16 * 4
+	add r5, r5, r0, lsl #3		; r5 = short_pixel_W + pixel_offset * 8
+
+	; read mask word 0
+	ldr r11, [r5], #4			; r11 = *short_pixel_W_offset++
+	ldr r1, [r10]				; r1 = screen word
+	bic r1, r1, r11				; mask screen word
+	and r0, r4, r11				; mask colour word
+	orr r1, r1, r0				; mask together
+	str r1, [r10], #4
+
+	; read mask word 1
+	ldr r11, [r5], #4			; r11 = *short_pixel_W_offset++
+	cmp r11, #0					; early out for blank mask
+	moveq pc, lr
+	ldr r1, [r10]				; r1 = screen word
+	bic r1, r1, r11				; mask screen word
+	and r0, r4, r11				; mask colour word
+	orr r1, r1, r0				; mask together
+	str r1, [r10], #4
+
 	mov pc, lr
+
 
 ; R0=event number
 event_handler:
@@ -817,8 +901,8 @@ test_poly_data:
 
 	.long 32, 32
 	.long 160, 32
-	.long 160, 160
-	.long 32, 160
+	.long 160, 101
+	.long 32, 111
 	.long 0, 64
 	.long 0, 0
 	.long 0, 0

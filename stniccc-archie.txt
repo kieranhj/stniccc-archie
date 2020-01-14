@@ -22,3 +22,6 @@ A3020 target = 3636
 
 Simplify drawline into span buffer loop
 A3020 = 4641
+
+Handle short spans of <=9 pixels as masks
+A3020 = 4514
