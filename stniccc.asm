@@ -473,38 +473,27 @@ plot_span:
 	; ptr = screen_addr + y * screen_stride + x_start DIV 2
 	add r10, r12, r0, lsr #1	; r10 += startx DIV 2
 
-	; handle first odd pixel
-	ands r5, r0, #1				; is x_start odd?
-	beq .1
+	ands r0, r0, #7				; r0=pixel offset [0-7]
+	beq .1						; already aligned
 
-	ldrb r5, [r10]				; load screen byte
-	and r5, r5, #0x0F			; mask out right hand pixel
-	and r11, r4, #0xF0
-	orr r5, r5, r11				; mask in colour
-	strb r5, [r10], #1			; store screen byte
-	subs r3, r3, #1				; decrement width by 1
-	moveq pc, lr				; exit if x_width == 0
+	; align to word
+	bic r10, r10, #3			; nearest word
+	rsb r0, r0, #8				; number of pixels to mask in
+	sub r3, r3, r0				; width -= number pixels plotted in start word
+
+	; find table
+	adrl r5, start_word_pixel_masks - 4
+
+	; read mask word 0
+	ldr r11, [r5, r0, lsl #2]	; r11 = start_word_pixel_masks[pixels to plot * 4]
+	ldr r1, [r10]				; r1 = screen word
+	bic r1, r1, r11				; mask screen word
+	and r0, r4, r11				; mask colour word
+	orr r1, r1, r0				; mask together
+	str r1, [r10], #4
 
 .1:
 
-	; now we need to align r10 to next word
-	ands r5, r10, #3			; r5=number of bytes
-	beq .3
-
-	; plot one byte (2 pixels) at a time until we reach word alignment...
-	rsb r5, r5, #4				; count = 4 - bytes
-.2:
-	cmp r3, #2					; continue until x_width < 2
-	blt .3
-
-	strb r4, [r10], #1			; write two pixels (one byte) to screen, post index
-	subs r3, r3, #2				; decrement x_width by 2
-	moveq pc, lr				; exit if x_width == 0
-
-	subs r5, r5, #1				; decement byte count
-	bne .2
-
-.3:
 	; plot word at a time
 	movs r5, r3, lsr #3			; each word = 8 pixels so word count = width/8
 	beq .5
@@ -517,26 +506,22 @@ plot_span:
 	subs r5, r5, #1				; decrement word count
 	bne .4
 
-	; handle remaining bytes
+	; handle remaining word
 .5:
-	cmp r3, #2					; continue until x_width < 2
-	blt .6
-
-	strb r4, [r10], #1			; write two pixels (one byte) to screen, post index
-	subs r3, r3, #2				; decrement x_width by 2
-	moveq pc, lr				; exit if x_width == 0
-	b .5
-
-.6:
 	cmp r3, #0
 	moveq pc, lr
 
-	; handle final odd pixel
-	ldrb r5, [r10]				; load screen byte
-	and r5, r5, #0xF0			; mask out left hand pixel
-	and r11, r4, #0x0F
-	orr r5, r5, r11				; mask in colour << 4
-	strb r5, [r10]				; store screen byte
+	; find table
+	adrl r5, short_pixel_1 - 64
+	add r5, r5, r3, lsl #6		; r5 = short_pixel_1 + width * 16 * 4
+
+	; read mask word 0
+	ldr r11, [r5]				; r11 = start_word_pixel_masks[pixels to plot * 4]
+	ldr r1, [r10]				; r1 = screen word
+	bic r1, r1, r11				; mask screen word
+	and r0, r4, r11				; mask colour word
+	orr r1, r1, r0				; mask together
+	str r1, [r10], #4
 
 	; return
 	mov pc, lr
@@ -845,6 +830,10 @@ short_pixel_9:
 .long    0xFFFFFFFF, 0x0000000F, 0xFFFFFFF0, 0x000000FF, 0xFFFFFF00, 0x00000FFF, 0xFFFFF000, 0x0000FFFF
 ;                             4                       5                       6                       7
 .long	 0xFFFF0000, 0x000FFFFF, 0xFFF00000, 0x00FFFFFF, 0xFF000000, 0x0FFFFFFF, 0xF0000000, 0xFFFFFFFF
+
+start_word_pixel_masks:
+; Offset 0 display last N pixels of word
+.long 	 0xF0000000, 0xFF000000, 0xFFF00000, 0xFFFF0000, 0xFFFFF000, 0xFFFFFF00, 0xFFFFFFF0
 
 ; In two words we can plot up to 9 pixels w/ shift of 7 pixels
 ; R0=xstart, R3=width, R4=colour, R12=screen line address

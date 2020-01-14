@@ -25,3 +25,7 @@ A3020 = 4641
 
 Handle short spans of <=9 pixels as masks
 A3020 = 4514
+
+Handle long span as mask + words + mask
+A3020 = 4232
+A3000 = 6019 = 15fps
