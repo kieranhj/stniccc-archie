@@ -631,12 +631,13 @@ drawline_into_span_buffer:
 ; R0=num verts, R1=buffer of vertices (x,y) as words, R4=colour, R12=screen_addr
 plot_polygon_span:
 	str lr, [sp, #-4]!			; push lr on stack
-	str r1, plot_polygon_ptr
+	str r4, plot_polygon_colour
+	mov r4, r1
 
 	adrl r11, span_buffer_start
 	adrl r12, span_buffer_end
 
-	ldmia r1, {r2-r3}
+	ldmia r4, {r2-r3}
 	str r2, plot_polygon_x0
 	str r3, plot_polygon_y0
 
@@ -644,10 +645,8 @@ plot_polygon_span:
 .1:
 	str r0, plot_polygon_num_verts
 
-	ldr r10, plot_polygon_ptr
-	ldmia r10, {r0-r3}			; load 4 registers x0, y0, x1, y1 but don't update ptr
-	add r10, r10, #8			; update pointer to x1
-	str r10, plot_polygon_ptr
+	ldmia r4, {r0-r3}			; load 4 registers x0, y0, x1, y1 but don't update ptr
+	add r4, r4, #8				; update pointer to x1
 
 	bl drawline_into_span_buffer
 
@@ -656,8 +655,7 @@ plot_polygon_span:
 	bne .1
 
 	; Double up the first/last vertex for plotting
-	ldr r10, plot_polygon_ptr
-	ldmia r10, {r0-r1}			; load 4 registers x0, y0
+	ldmia r4, {r0-r1}			; load 4 registers x0, y0
 	ldr r2, plot_polygon_x0
 	ldr r3, plot_polygon_y0
 
@@ -676,6 +674,7 @@ plot_polygon_span:
 	add r12, r12, r2, lsl #7	; r10 = screen_addr + starty * 128
 	add r12, r12, r2, lsl #5	; r10 += starty * 32 = starty * 160
 
+	ldr r4, plot_polygon_colour
 	orr r4, r4, r4, lsl #4		; r4 = colour | colour << 4
 	orr r4, r4, r4, lsl #8		; r4 = 2 bytes
 	orr r4, r4, r4, lsl #16		; r4 = 4 bytes
