@@ -578,9 +578,9 @@ initialise_span_buffer:
 	blt .1
 	mov pc, lr
 
-; R0=startx, R1=starty, R2=endx, R3=endy, R4=colour (preserve)
-; R5=dx, R6=dy, R7=sx, R8=sy, R9=err, R10=e2/addr/temp
-; R11=span_buffer_start, R12=span_buffer_end
+; passed in R0=startx, R1=starty, R2=endx, R3=endy
+; used R5=dx, R6=dy, R7=sx, R8=sy, R9=err, R10=e2/addr/temp
+; preserve: R11=span_buffer_start, R12=span_buffer_end, R4
 drawline_into_span_buffer:
 
 	ldr r5, span_buffer_min_y
@@ -593,18 +593,13 @@ drawline_into_span_buffer:
 
 	subs r5, r2, r0				; r5 = dx = endx - startx
 	rsblt r5, r5, #0			; r5 = abs(dx)
-
-	cmp r0,r2					; startx < endx?
-	movlt r7, #1				; r7 = sx = 1
-	movge r7, #-1				; r7 = sx = -1
+	movge r7, #1				; r8 = sy = 1
+	movlt r7, #-1				; r8 = sy = -1
 
 	subs r6, r3, r1				; r6 = dy = endy - starty
-	rsblt r6, r6, #0			; r6 = abs(dy)
-	rsb r6, r6, #0				; r6 = -abs(dy)
-
-	cmp r1, r3					; starty < endy?
-	movlt r8, #1				; r8 = sy = 1
-	movge r8, #-1				; r8 = sy = -1
+	rsbgt r6, r6, #0			; r6 = -abs(dy)
+	movge r8, #1				; r8 = sy = 1
+	movlt r8, #-1				; r8 = sy = -1
 
 	add r9, r5, r6				; r9 = dx + dy = err
 
@@ -757,6 +752,8 @@ plot_polygon_num_verts:
 plot_polygon_x0:
 	.long 0
 plot_polygon_y0:
+	.long 0
+plot_polygon_colour:
 	.long 0
 
 ; R0=startx, R1=starty, R2=endx, R3=endy, R4=colour, R12=screen_addr
