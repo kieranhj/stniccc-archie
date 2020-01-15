@@ -2,6 +2,7 @@
 ; AREA   ASM$$Code,Code,ReadOnly
 ; ENTRY Start
 
+.equ _TESTS, 0
 .equ _UNROLL_SPAN, 1
 
 .equ Screen_Mode, 9
@@ -110,31 +111,37 @@ loop:
 
 	;Do stuff here!
 
-.if 0
+.if _TESTS
 	ldr r12, screen_addr			; R12=generic screen_addr ptr
+	add r9, r12, #Screen_Bytes
 
 	mov r2, #0
-	mov r6, #121
+	mov r8, #121
 	mov r7, #319
 	mov r4, #0x11
 	orr r4, r4, r4, lsl #8
 	orr r4, r4, r4, lsl #16
 
+	mov r1, r4
+	mov r2, r4
+	mov r6, r4
+
 my_test_loop:
 
-	cmp r6, r7
-	movle r0, r6
-	movle r1, r7
+	cmp r8, r7
+	movle r0, r8
+	movle r3, r7
 	movgt r0, r7
-	movgt r1, r6
+	movgt r3, r8
 
+	; preserve r7, r8, r9, r12
 	bl plot_span
 
-	add r12, r12, #160
 ;	add r6, r6, #1
 	sub r7, r7, #1
-	add r2, r2, #1
-	cmp r2, #256
+
+	add r12, r12, #160
+	cmp r12, r9
 	bne my_test_loop
 
 	ldr r12, screen_addr			; R12=generic screen_addr ptr
@@ -471,16 +478,23 @@ parse_end_of_frame:
 parse_frame_ptr:
 	.long scene1_data_stream
 
-; R0=x_start, R1=x_end, R2=y, r4=colour, R12=screen_addr for line
-; R3=width, R5=temp, R10=writeptr, R11=temp
-; preserves r6, r7, r8, r9
-; no longer handles x_end < x_start for test!!
+
+; reserved r15, r14, r13
+; preserve r7, r8, r9, r12
+; passed in r0, r3, r4
+; R0=x_start, R3=x_end/width, r4=colour, R12=screen_addr for line
+
+; free r1, r2, r5, r6, r10, r11
+; r10=writeptr, r5=readptr, r11=temp
+; would like 4x colour registers! r4 + r1, r2, r6
+
+; no longer handles x_end < x_start!!
 plot_span:
 
 	; ptr = screen_addr + y * screen_stride + x_start DIV 2
 	add r10, r12, r0, lsr #1	; r10 += startx DIV 2
 
-	sub r3, r1, r0				; r3 = x_end - x_start = x_width
+	sub r3, r3, r0				; r3 = x_end - x_start = x_width
 	add r3, r3, #1				; always plot at least one pixel
 
 	cmp r3, #9
@@ -499,24 +513,24 @@ plot_span:
 
 	; read mask word 0
 	ldr r11, [r5, r0, lsl #2]	; r11 = start_word_pixel_masks[pixels to plot * 4]
-	ldr r1, [r10]				; r1 = screen word
-	bic r1, r1, r11				; mask screen word
-	and r0, r4, r11				; mask colour word
-	orr r1, r1, r0				; mask together
-	str r1, [r10], #4
+	ldr r5, [r10]				; r1 = screen word
+	bic r5, r5, r11				; mask screen word
+	and r11, r4, r11			; mask colour word
+	orr r5, r5, r11				; mask together
+	str r5, [r10], #4
 
 .1:
 
 	; plot word at a time
 	movs r5, r3, lsr #3			; each word = 8 pixels so word count = width/8
-	beq plot_span_last_word
+;	beq plot_span_last_word		; not sure this is needed but assembler won't let me remove it WTAF?
 
 	sub r3, r3, r5, lsl #3		; width -= words * 8
 
 .if _UNROLL_SPAN
-	adrl r1, span_jump_table - 4
-	add r0, r1, r5, lsl #2
-	mov pc, r0
+	adrl r11, span_jump_table - 4
+	add r11, r11, r5, lsl #2
+	mov pc, r11
 	return_here_from_jump:
 .else
 	; plot words
@@ -537,11 +551,11 @@ plot_span_last_word:
 
 	; read mask word 0
 	ldr r11, [r5, r3, lsl #6]	; r11 = start_word_pixel_masks[pixels to plot * 4]
-	ldr r1, [r10]				; r1 = screen word
-	bic r1, r1, r11				; mask screen word
-	and r0, r4, r11				; mask colour word
-	orr r1, r1, r0				; mask together
-	str r1, [r10], #4
+	ldr r5, [r10]				; r1 = screen word
+	bic r5, r5, r11				; mask screen word
+	and r11, r4, r11			; mask colour word
+	orr r5, r5, r11				; mask together
+	str r5, [r10], #4
 
 	; return
 	mov pc, lr					; rts
@@ -659,34 +673,45 @@ plot_polygon_span:
 	adrl r9, span_buffer_start
 	adrl r8, span_buffer_end
 
-	orr r4, r4, r4, lsl #4		; r4 = colour | colour << 4
-	orr r4, r4, r4, lsl #8		; r4 = 2 bytes
-	orr r4, r4, r4, lsl #16		; r4 = 4 bytes
+	add r7, r9, r7, lsl #2		; r7 = &span_buffer_start[span_buffer_max_y]
+	add r9, r9, r2, lsl #2		; r9 = &span_buffer_start[span_buffer_min_y]
+	add r8, r8, r2, lsl #2		; r8 = &span_buffer_end[span_buffer_min_y]
 
 	ldr r12, screen_addr		; R12=generic screen_addr ptr
 	add r12, r12, r2, lsl #7	; r10 = screen_addr + starty * 128
 	add r12, r12, r2, lsl #5	; r10 += starty * 32 = starty * 160
 
-.span_loop:
-	ldr r0, [r9, r2, lsl #2]	; r0 = span_buffer_start[y]
-	ldr r1, [r8, r2, lsl #2]	; r1 = span_buffer_end[y]
+	orr r4, r4, r4, lsl #4		; r4 = colour | colour << 4
+	orr r4, r4, r4, lsl #8		; r4 = 2 bytes
+	orr r4, r4, r4, lsl #16		; r4 = 4 bytes
 
+	mov r1, r4
+	mov r2, r4
+	mov r6, r4
+
+.span_loop:
+	ldr r0, [r9]				; r0 = span_buffer_start[y]
+	ldr r3, [r8]				; r1 = span_buffer_end[y]
+
+	; reserved r15, r14, r13
+	; preserve r7, r8, r9, r12
+	; passed in r0, r3, r4
+	; free r1, r2, r5, r6, r10, r11
 	bl plot_span
-	add r12, r12, #160			; move ptr to start address of next line
+	add r12, r12, #Screen_Stride	; move ptr to start address of next line
 
 	; reset the span buffer
-	mov r0, #256
-	str r0, [r9, r2, lsl #2]	; span_buffer_start[y] = 256
-	mov r1, #0
-	str r1, [r8, r2, lsl #2]	; span_buffer_end[y] = 0
+	mov r5, #256
+	str r5, [r9], #4			; span_buffer_start[y] = 256
+	mov r11, #0
+	str r11, [r8], #4			; span_buffer_end[y] = 0
 
-	add r2, r2, #1				; y += 1
-	cmp r2, r7					; y <= max_y?
+	cmp r9, r7					; y <= max_y?
 	ble .span_loop
 
 	; reset the span limits
-	str r0, span_buffer_min_y
-	str r1, span_buffer_max_y
+	str r5, span_buffer_min_y
+	str r11, span_buffer_max_y
 
 	ldr pc, [sp], #4			; rts
 
@@ -858,7 +883,8 @@ start_word_pixel_masks:
 ; In two words we can plot up to 9 pixels w/ shift of 7 pixels
 ; R0=xstart, R3=width, R4=colour, R12=screen line address
 ; R5=temp, R11=temp, R10=writeptr
-; preserves r6, r7, r8, r9
+; preserves r7, r8, r9
+; colour r1, r2, r4, r6
 plot_short_span:
 
 	bic r10, r10, #3			; nearest word
@@ -871,61 +897,45 @@ plot_short_span:
 
 	; read mask word 0
 	ldr r11, [r5], #4			; r11 = *short_pixel_W_offset++
-	ldr r1, [r10]				; r1 = screen word
-	bic r1, r1, r11				; mask screen word
+	ldr r3, [r10]				; r1 = screen word
+	bic r3, r3, r11				; mask screen word
 	and r0, r4, r11				; mask colour word
-	orr r1, r1, r0				; mask together
-	str r1, [r10], #4
+	orr r3, r3, r0				; mask together
+	str r3, [r10], #4
 
 	; read mask word 1
 	ldr r11, [r5], #4			; r11 = *short_pixel_W_offset++
 	cmp r11, #0					; early out for blank mask
 	moveq pc, lr
-	ldr r1, [r10]				; r1 = screen word
-	bic r1, r1, r11				; mask screen word
+	ldr r3, [r10]				; r1 = screen word
+	bic r3, r3, r11				; mask screen word
 	and r0, r4, r11				; mask colour word
-	orr r1, r1, r0				; mask together
-	str r1, [r10], #4
+	orr r3, r3, r0				; mask together
+	str r3, [r10], #4
 
 	mov pc, lr
 
-; can use R0, R1, R4, R5, R11 (at the moment)
+; colour stored in r1, r2, r4, r6
 .macro plot_span_X num_pixels
 
 plot_span_\num_pixels:
-	.if \num_pixels > 1
-	mov r0, r4
-	.endif
-	.if \num_pixels > 2
-	mov r1, r4
-	.endif
-	.if \num_pixels > 3
-	mov r5, r4
-	.endif
-	.if \num_pixels > 4
-	mov r11, r4
-	.endif
 
-	.set fives, (\num_pixels / 5)
-	.rept fives
-	stmia r10!, {r0, r1, r4, r5, r11}	; 5x words
+	.set fours, (\num_pixels / 4)
+	.rept fours
+	stmia r10!, {r1, r2, r4, r6}		; 4x words
 	.endr
 
-	.set words, (\num_pixels - fives * 5)
+	.set words, (\num_pixels - fours * 4)
 	.if words == 1
 	str r4, [r10], #4					; 1x word
 	.endif
 
 	.if words == 2
-	stmia r10!, {r0, r4}				; 2x words
+	stmia r10!, {r1, r4}				; 2x words
 	.endif
 
 	.if words == 3
-	stmia r10!, {r0, r1, r4}			; 3x words
-	.endif
-
-	.if words == 4
-	stmia r10!, {r0, r1, r4, r5}		; 4x words
+	stmia r10!, {r1, r2, r4}			; 3x words
 	.endif
 
 	b return_here_from_jump

@@ -36,3 +36,10 @@ A3020 = 4075 = 22.1fps
 
 Only clear the window not the entire screen
 A3000 = 5821 = 15.46fps
+
+No debug vsync
+A3020 = 4009
+A3000 = 5749
+
+Move to 4 word plot with 4x registers held
+A3020 = 3967
