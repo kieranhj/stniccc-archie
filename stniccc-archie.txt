@@ -56,3 +56,4 @@ x += dx/dy
 
 Remove vertex copying for indexed polys
 A3020 = 3886
+A3000 = 5643

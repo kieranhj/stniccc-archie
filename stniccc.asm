@@ -497,11 +497,11 @@ plot_span:
 
 	; read mask word 0
 	ldr r11, [r5, r0, lsl #2]	; r11 = start_word_pixel_masks[pixels to plot * 4]
-	ldr r5, [r10]				; r1 = screen word
+	ldr r5, [r10]				; r5 = screen word
 	bic r5, r5, r11				; mask screen word
 	and r11, r4, r11			; mask colour word
 	orr r5, r5, r11				; mask together
-	str r5, [r10], #4
+	str r5, [r10], #4			; store back to screen
 
 .1:
 
@@ -535,11 +535,11 @@ plot_span_last_word:
 
 	; read mask word 0
 	ldr r11, [r5, r3, lsl #6]	; r11 = start_word_pixel_masks[pixels to plot * 4]
-	ldr r5, [r10]				; r1 = screen word
+	ldr r5, [r10]				; r5 = screen word
 	bic r5, r5, r11				; mask screen word
 	and r11, r4, r11			; mask colour word
 	orr r5, r5, r11				; mask together
-	str r5, [r10], #4
+	str r5, [r10], #4			; store back to screen
 
 	; return
 	mov pc, lr					; rts
@@ -612,15 +612,17 @@ drawline_into_span_buffer:
 
 	b .1
 
-; R0=num verts, R1=buffer of vertices (x,y) as words, R4=colour, R12=screen_addr
+; R0=num verts, R1=buffer of vertices (x,y) as words, R4=colour
 plot_polygon_span:
 	str lr, [sp, #-4]!			; push lr on stack
 	str r4, plot_polygon_colour
 	mov r4, r1
 
+	; Set up pointers to span buffers for line draw
 	adrl r11, span_buffer_start
 	adrl r12, span_buffer_end
 
+	; Store first vertex for reuse as last vertex
 	ldmia r4, {r2-r3}
 	str r2, plot_polygon_x0
 	str r3, plot_polygon_y0
@@ -645,19 +647,23 @@ plot_polygon_span:
 
 	bl drawline_into_span_buffer
 
-	ldr r2, span_buffer_min_y	; r2 = span_buffer_min_y
-	ldr r7, span_buffer_max_y	; r7 = span_buffer_max_y
+	; Set up our span buffer pointers
 	adrl r9, span_buffer_start
 	adrl r8, span_buffer_end
+
+	ldr r2, span_buffer_min_y	; r2 = span_buffer_min_y
+	ldr r7, span_buffer_max_y	; r7 = span_buffer_max_y
 
 	add r7, r9, r7, lsl #2		; r7 = &span_buffer_start[span_buffer_max_y]
 	add r9, r9, r2, lsl #2		; r9 = &span_buffer_start[span_buffer_min_y]
 	add r8, r8, r2, lsl #2		; r8 = &span_buffer_end[span_buffer_min_y]
 
+	; Set up our screen buffer pointer
 	ldr r12, screen_addr		; R12=generic screen_addr ptr
 	add r12, r12, r2, lsl #7	; r10 = screen_addr + starty * 128
 	add r12, r12, r2, lsl #5	; r10 += starty * 32 = starty * 160
 
+	; Turn our polygon colour value into 4x words
 	ldr r4, plot_polygon_colour
 	orr r4, r4, r4, lsl #4		; r4 = colour | colour << 4
 	orr r4, r4, r4, lsl #8		; r4 = 2 bytes
@@ -877,21 +883,21 @@ plot_short_span:
 
 	; read mask word 0
 	ldr r11, [r5], #4			; r11 = *short_pixel_W_offset++
-	ldr r3, [r10]				; r1 = screen word
+	ldr r3, [r10]				; r3 = screen word
 	bic r3, r3, r11				; mask screen word
 	and r0, r4, r11				; mask colour word
 	orr r3, r3, r0				; mask together
-	str r3, [r10], #4
+	str r3, [r10], #4			; store back to screen
 
 	; read mask word 1
 	ldr r11, [r5], #4			; r11 = *short_pixel_W_offset++
 	cmp r11, #0					; early out for blank mask
 	moveq pc, lr
-	ldr r3, [r10]				; r1 = screen word
+	ldr r3, [r10]				; r3 = screen word
 	bic r3, r3, r11				; mask screen word
 	and r0, r4, r11				; mask colour word
 	orr r3, r3, r0				; mask together
-	str r3, [r10], #4
+	str r3, [r10], #4			; store back to screen
 
 	mov pc, lr
 
@@ -932,9 +938,13 @@ plot_span_X \my_width
 .irp my_width, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30
 plot_span_X \my_width
 .endr
-.irp my_width, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40
+.irp my_width, 31, 32
 plot_span_X \my_width
 .endr
+
+;.irp my_width, 33, 34, 35, 36, 37, 38, 39, 40
+;plot_span_X \my_width
+;.endr
 
 ; This is relocatable but could be changed to .long plot_span_\my_width
 span_jump_table:
@@ -947,10 +957,12 @@ span_jump_table:
 	.irp my_width, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30
 	b plot_span_\my_width
 	.endr
-	.irp my_width, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40
+	.irp my_width, 31, 32
 	b plot_span_\my_width
 	.endr
-
+;	.irp my_width, 33, 34, 35, 36, 37, 38, 39, 40
+;	b plot_span_\my_width
+;	.endr
 .endif
 
 test_poly_data:
