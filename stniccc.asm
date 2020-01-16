@@ -352,24 +352,13 @@ parse_frame:
 	; get_byte
 	ldrb r1, [r11], #1			; r0=num_verts
 
-	adrl r8, vertices_x			; r8=vertices_x
-	adrl r9, vertices_y			; r9=vertices_y
+	; store ptr to literal vertex data
+	mov r8, r11
+	add r9, r8, #1
 
 	; next is an array of (x,y) bytes
 
-	mov r0, #0
-.4:
-	; get_byte
-	ldrb r2, [r11], #1			; r2=x
-	; get_byte
-	ldrb r3, [r11], #1			; r3=y
-
-	str r2, [r8, r0, lsl #2]	; vertices_x[i] = x
-	str r3, [r9, r0, lsl #2]	; vertices_y[i] = y
-
-	add r0, r0, #1
-	cmp r0, r1
-	blt .4
+	add r11, r11, r1, lsl #1	; skip num_verts*2 bytes
 
 parse_frame_read_poly_data:
 
@@ -400,8 +389,8 @@ parse_frame_read_poly_data:
 	ldrb r5, [r11], #1			; r5=index
 
 	; lookup verts
-	ldr r2, [r8, r5, lsl #2]	; r2=vertices_x[i]
-	ldr r3, [r9, r5, lsl #2]	; r3=vertices_y[i]
+	ldrb r2, [r8, r5, lsl #1]	; r2=vertices_x[i]
+	ldrb r3, [r9, r5, lsl #1]	; r3=vertices_y[i]
 
 	; store into a temp array for now
 	str r2, [r6], #4			; *temp_poly_data++ = x
@@ -424,8 +413,8 @@ non_indexed_data:
 	ldrb r3, [r11], #1			; r3=y
 
 	; store into a temp array for now
-	str r2, [r6], #4			; *temp_poly_data++ = x
-	str r3, [r6], #4			; *temp_poly_data++ = y
+	stmia r6!, {r2, r3}			; *temp_poly_data++ = x, y
+;	str r3, [r6], #4			; *temp_poly_data++ = y
 
 	add r0, r0, #1
 	cmp r0, r1
@@ -992,14 +981,6 @@ span_buffer_start:
 .p2align 8
 span_buffer_end:
 	.skip 1024,0 
-
-.p2align 8
-vertices_x:
-	.skip 1024,0
-
-.p2align 8
-vertices_y:
-	.skip 1024,0
 
 scene1_data_stream:
 .incbin "data/scene1.bin"

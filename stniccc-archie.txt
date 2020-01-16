@@ -44,3 +44,15 @@ A3000 = 5749
 Move to 4 word plot with 4x registers held
 A3020 = 3967 = 22.7fps
 A3000 = 5686 = 15.8fps
+
+Alternative to Bresenham?
+Compute dx/dy
+dx = endx - startx
+dy = endy - starty [0-255]
+
+Table of 1/dy in .16 format
+Foreach y from y0 to y1
+x += dx/dy
+
+Remove vertex copying for indexed polys
+A3020 = 3886
