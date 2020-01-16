@@ -616,7 +616,7 @@ drawline_into_span_buffer:
 plot_polygon_span:
 	str lr, [sp, #-4]!			; push lr on stack
 	str r4, plot_polygon_colour
-	mov r4, r1
+	mov r4, r1					; TODO
 
 	; Set up pointers to span buffers for line draw
 	adrl r11, span_buffer_start
@@ -648,15 +648,13 @@ plot_polygon_span:
 	bl drawline_into_span_buffer
 
 	; Set up our span buffer pointers
-	adrl r9, span_buffer_start
-	adrl r8, span_buffer_end
-
 	ldr r2, span_buffer_min_y	; r2 = span_buffer_min_y
 	ldr r7, span_buffer_max_y	; r7 = span_buffer_max_y
 
-	add r7, r9, r7, lsl #2		; r7 = &span_buffer_start[span_buffer_max_y]
-	add r9, r9, r2, lsl #2		; r9 = &span_buffer_start[span_buffer_min_y]
-	add r8, r8, r2, lsl #2		; r8 = &span_buffer_end[span_buffer_min_y]
+	; r11=span_buffer_start, r12=span_buffer_end
+	add r7, r11, r7, lsl #2		; r7 = &span_buffer_start[span_buffer_max_y]
+	add r9, r11, r2, lsl #2		; r9 = &span_buffer_start[span_buffer_min_y]
+	add r8, r12, r2, lsl #2		; r8 = &span_buffer_end[span_buffer_min_y]
 
 	; Set up our screen buffer pointer
 	ldr r12, screen_addr		; R12=generic screen_addr ptr
