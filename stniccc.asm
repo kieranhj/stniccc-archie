@@ -382,7 +382,7 @@ parse_frame_read_poly_data:
 	beq non_indexed_data
 
 	; indexed
-	mov r0, #0
+	mov r0, r1
 .5:
 	; read index
 	; get_byte
@@ -393,18 +393,16 @@ parse_frame_read_poly_data:
 	ldrb r3, [r9, r5, lsl #1]	; r3=vertices_y[i]
 
 	; store into a temp array for now
-	str r2, [r6], #4			; *temp_poly_data++ = x
-	str r3, [r6], #4			; *temp_poly_data++ = y
+	stmia r6!, {r2, r3}			; *temp_poly_data++ = x
 
-	add r0, r0, #1				; n++
-	cmp r0, r1					; n == num_verts?
-	blt .5
+	subs r1, r1, #1
+	bne .5
 	b parse_plot_poly
 
 non_indexed_data:
 
 	; non-indexed
-	mov r0, #0
+	mov r0, r1
 .6:
 	; copy (x,y) bytes directly to temp array
 	; get_byte
@@ -414,11 +412,9 @@ non_indexed_data:
 
 	; store into a temp array for now
 	stmia r6!, {r2, r3}			; *temp_poly_data++ = x, y
-;	str r3, [r6], #4			; *temp_poly_data++ = y
 
-	add r0, r0, #1
-	cmp r0, r1
-	blt .6
+	subs r1, r1, #1
+	bne .6
 
 parse_plot_poly:
 
@@ -426,7 +422,6 @@ parse_plot_poly:
 	stmfd sp!, {r8-r11}
 
 	; plot the polygon!
-	mov r0, r1
 	adrl r1, test_poly_data
 	; r4=palette
 	bl plot_polygon_span
