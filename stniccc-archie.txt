@@ -66,3 +66,10 @@ Project A3000 w/ music = 6246 = 14.4fps...
 Triple buffering!!!
 A3020 = 3075 = 29.3 fps! 
 A3000 = 4751 = 18.9 fps!
+
+TODO
+- Fix palette
+- Centre screen
+- Music
+- Decide intro/outro
+- 

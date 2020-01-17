@@ -519,10 +519,9 @@ plot_span:
 	str r5, [r10], #4			; store back to screen
 
 .1:
-
 	; plot word at a time
 	movs r5, r3, lsr #3			; each word = 8 pixels so word count = width/8
-;	beq plot_span_last_word		; not sure this is needed but assembler won't let me remove it WTAF?
+	beq plot_span_last_word		; if width = 10, pixel offset = 1, then will get here with 3 pixels left
 
 	sub r3, r3, r5, lsl #3		; width -= words * 8
 
@@ -1013,6 +1012,7 @@ plot_span_X \my_width
 ;plot_span_X \my_width
 ;.endr
 
+b return_here_from_jump	; in case this gets called with 0
 ; This is relocatable but could be changed to .long plot_span_\my_width
 span_jump_table:
 	.irp my_width, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
