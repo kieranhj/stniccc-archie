@@ -1,10 +1,11 @@
-; TARGET ARM2
-; AREA   ASM$$Code,Code,ReadOnly
-; ENTRY Start
+; STNICCC-Archie
+; A port of STNICCC-2000 by Oxygene for the Acorn Archimedes series
+; 
 
 .equ _TESTS, 0
 .equ _UNROLL_SPAN, 1
 
+.equ Screen_Banks, 3
 .equ Screen_Mode, 9
 .equ Screen_Width, 320
 .equ Screen_Height, 256
@@ -27,8 +28,7 @@ Start:
 stack_base:
 
 scr_bank:
-	.byte 0
-	.align 4
+	.long 0
 
 main:
 	MOV r0,#22	;Set MODE
@@ -36,24 +36,19 @@ main:
 	MOV r0,#Screen_Mode
 	SWI OS_WriteC
 
-	; Set screen size to 160k (double buffer)
+	; Set screen size for number of buffers
 	MOV r0, #DynArea_Screen
 	SWI OS_ReadDynamicArea
 	MOV r0, #DynArea_Screen
-	MOV r2, #2*Screen_Bytes
+	MOV r2, #Screen_Bytes * Screen_Banks
 	SUBS r1, r2, r1
 	SWI OS_ChangeDynamicArea
 	MOV r0, #DynArea_Screen
 	SWI OS_ReadDynamicArea
-	CMP r1, #2*Screen_Bytes
+	CMP r1, #Screen_Bytes * Screen_Banks
 	ADRCC r0, error_noscreenmem
 	SWICC OS_GenerateError
 
-	MOV r0,#22	;Set MODE
-	SWI OS_WriteC
-	MOV r0,#128+Screen_Mode
-	SWI OS_WriteC
-	
 	MOV r0,#23	;Disable cursor
 	SWI OS_WriteC
 	MOV r0,#1
@@ -68,10 +63,26 @@ main:
 	SWI OS_WriteC
 	SWI OS_WriteC
 
-	adrl r0, scr_bank
-	MOV r1, #1
-	STRB r1, [r0]
+	; Clear all screen buffers
+	mov r1, #1
+.1:
+	str r1, scr_bank
 
+	; CLS bank N
+	mov r0, #OSByte_WriteVDUBank
+	swi OS_Byte
+	mov r0, #12
+	SWI OS_WriteC
+
+	ldr r1, scr_bank
+	add r1, r1, #1
+	cmp r1, #Screen_Banks
+	ble .1
+
+	; Start with bank 1
+	mov r1, #1
+	str r1, scr_bank
+	
 	; Claim the Event vector
 	mov r0, #EventV
 	adr r1, event_handler
@@ -85,29 +96,33 @@ main:
 	mov r1, #Event_VSync
 	SWI OS_Byte
 
-loop:   
+main_loop:   
 	; debug
-	;bl debug_write_vsync_count
+	bl debug_write_vsync_count
 
-	;Swap banks
-	adrl r0, scr_bank
-	LDRB r1, [r0]
-	ADD r1, r1, #1
-	MOV r0, #OSByte_WriteDisplayBank
-	SWI OS_Byte
-	adrl r0, scr_bank
-	LDRB r1, [r0]
-	EOR r1, r1, #1
-	STRB r1, [r0]
-	ADD r1, r1, #1
-	MOV r0, #OSByte_WriteVDUBank
-	SWI OS_Byte
+	; Swap banks
+	; Display whichever bank we've just written to
+	ldr r1, scr_bank
+	mov r0, #OSByte_WriteDisplayBank
+	swi OS_Byte
 
-	MOV r0, #OSByte_Vsync
-	SWI OS_Byte
+	; Increment to next bank for writing
+	ldr r1, scr_bank
+	add r1, r1, #1
+	cmp r1, #Screen_Banks
+	movgt r1, #1
+	str r1, scr_bank
+	mov r0, #OSByte_WriteVDUBank
+	swi OS_Byte
 
-	BL get_screen_addr
-	;Back buffer address stored at screen_addr
+	; Wait for vsync if double buffering
+	.if Screen_Banks <= 2
+	mov r0, #OSByte_Vsync
+	swi OS_Byte
+	.endif
+
+	; Back buffer address for writing bank stored at screen_addr
+	bl get_screen_addr
 
 	;Do stuff here!
 
@@ -180,7 +195,7 @@ my_test_points:
 	CMPEQ r2, #0xff
 	BEQ exit
 	
-	B loop
+	B main_loop
 
 error_noscreenmem:
 	.long 0
@@ -205,11 +220,11 @@ debug_string:
 	.skip 8
 
 get_screen_addr:
-	STR lr, [sp, #-4]!
+	str lr, [sp, #-4]!
 	adrl r0, screen_addr_input
 	adrl r1, screen_addr
-	SWI OS_ReadVduVariables
-	LDR pc, [sp], #4
+	swi OS_ReadVduVariables
+	ldr pc, [sp], #4
 	
 screen_addr_input:
 	.long VD_ScreenStart, -1
@@ -217,11 +232,10 @@ screen_addr:
 	.long 0
 
 exit:	
-	adrl r1, scr_bank
-	LDRB r1, [r1]
-	ADD r1, r1, #1
-	MOV r0, #OSByte_WriteDisplayBank
-	SWI OS_Byte
+	; Display whichever bank we've just written to
+	ldr r1, scr_bank
+	mov r0, #OSByte_WriteDisplayBank
+	swi OS_Byte
 
 	; disable vsync event
 	mov r0, #13
@@ -234,6 +248,7 @@ exit:
 	mov r2, #0
 	swi OS_Release
 
+	; Show our final frame count
 	bl debug_write_vsync_count
 
 	SWI OS_Exit
@@ -253,7 +268,7 @@ vsync_count:
 	.long 0
 
 ; R12=screen_addr, trashes r7, r8, r9
-screen_cls:
+window_cls:
 	ldr r8, screen_addr
 	add r9, r8, #Window_Bytes
 
@@ -299,7 +314,7 @@ parse_frame:
 	ldrb r10, [r11], #1			; r10=frame_flags
 
 	tst r10, #FLAG_CLEAR_SCREEN
-	blne screen_cls
+	blne window_cls
 
 	tst r10, #FLAG_CONTAINS_PALETTE
 	beq .1						; no_palette
@@ -562,9 +577,10 @@ initialise_span_buffer:
 	blt .1
 	mov pc, lr
 
+.if 1
 ; passed in R0=startx, R1=starty, R2=endx, R3=endy
 ; used R5=dx, R6=dy, R7=sx, R8=sy, R9=err, R10=e2/addr/temp
-; preserve: R11=span_buffer_start, R12=span_buffer_end, R4
+; preserve: R11=span_buffer_start, R12=span_buffer_end, R4=poly ptr
 drawline_into_span_buffer:
 
 	ldr r5, span_buffer_min_y
@@ -611,6 +627,59 @@ drawline_into_span_buffer:
 	addle r1, r1, r8			; y0 += sy
 
 	b .1
+.else
+; passed in R0=startx, R1=starty, R2=endx, R3=endy
+; used R5=dx, R6=dy, R7=sx, R8=sy, R9=err, R10=e2/addr/temp
+; preserve: R11=span_buffer_start, R12=span_buffer_end, R4=poly ptr
+drawline_into_span_buffer:
+	ldr r5, span_buffer_min_y
+	cmp r1, r5					; starty < min_y?
+	strlt r1, span_buffer_min_y	; min_y = starty
+
+	ldr r5, span_buffer_max_y
+	cmp r1, r5					; starty > max_y?
+	strgt r1, span_buffer_max_y	; max_y = starty
+
+	sub r5, r2, r0				; r5 = dx = endx - startx
+	subs r6, r3, r1				; r6 = dy = endy - starty
+	; need to deal with sign of dy somehow?
+	rsblt r6, r6, #0			; r6 = abs(dy)
+	; table is inclusive [1-256]
+
+	adr r10, division_table
+	ldr r7, [r10, r6, lsl #2]	; r7 = division_table[dy * 4]
+	mul r8, r5, r7				; r8 = dx * 1/dy => result << 16
+
+	; foreach y step by r8
+	mov r0, r0, lsl #16
+.1:
+	mov r2, r0, lsr #16
+
+	; plot_pixel HERE!
+	ldr r10, [r11, r1, lsl #2]	; span_buffer_start[y]
+	cmp r2, r10					; x < span_buffer_start[y]?
+	strlt r2, [r11, r1, lsl #2]	; span_buffer_start[y] = x
+
+	ldr r10, [r12, r1, lsl #2]	; span_buffer_end[y]
+	cmp r0, r10					; x > span_buffer_start[y]?
+	strgt r2, [r12, r1, lsl #2]	; span_buffer_end[y] = x
+
+	; check for end y
+	cmp r1, r3
+	moveq pc, lr
+
+	; increment by dx/dy
+	add r0, r0, r8
+	add r1, r1, #1
+	b .1
+
+division_table:
+.set divisor, 1
+.rept 256
+	.long 65536 / divisor
+	.set divisor, divisor + 1
+.endr
+.endif
 
 ; R0=num verts, R1=buffer of vertices (x,y) as words, R4=colour
 plot_polygon_span:

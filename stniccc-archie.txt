@@ -55,5 +55,14 @@ Foreach y from y0 to y1
 x += dx/dy
 
 Remove vertex copying for indexed polys
-A3020 = 3886
+A3020 = 3886, weird now getting 3976?
 A3000 = 5643
+
+Real hw A3020 = &f95 = 3989
+Real hw A3020 w/ music = &1140 = 4416
+Music overhead ~10.7%
+Project A3000 w/ music = 6246 = 14.4fps...
+
+Triple buffering!!!
+A3020 = 3075 = 29.3 fps! 
+A3000 = 4751 = 18.9 fps!
