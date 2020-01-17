@@ -66,6 +66,7 @@ Project A3000 w/ music = 6246 = 14.4fps...
 Triple buffering!!!
 A3020 = 3075 = 29.3 fps! 
 A3000 = 4751 = 18.9 fps!
+(Wireframe A3020 = 40.6fps!!)
 
 TODO
 - Fix palette

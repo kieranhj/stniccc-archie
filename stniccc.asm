@@ -4,6 +4,7 @@
 
 .equ _TESTS, 0
 .equ _UNROLL_SPAN, 1
+.equ _DRAW_WIREFRAME, 0
 
 .equ Screen_Banks, 3
 .equ Screen_Mode, 9
@@ -314,7 +315,11 @@ parse_frame:
 	ldrb r10, [r11], #1			; r10=frame_flags
 
 	tst r10, #FLAG_CLEAR_SCREEN
+	.if _DRAW_WIREFRAME
+	bl window_cls
+	.else
 	blne window_cls
+	.endif
 
 	tst r10, #FLAG_CONTAINS_PALETTE
 	beq .1						; no_palette
@@ -439,8 +444,11 @@ parse_plot_poly:
 	; plot the polygon!
 	adrl r1, test_poly_data
 	; r4=palette
+	.if _DRAW_WIREFRAME
+	bl plot_polygon_line
+	.else
 	bl plot_polygon_span
-;	bl plot_polygon_line
+	.endif
 	
 	; pull any registers we need here!
 	ldmfd sp!, {r8-r11}
@@ -770,6 +778,8 @@ plot_polygon_line:
 
 	str lr, [sp, #-4]!			; push lr on stack
 	str r1, plot_polygon_ptr
+
+	ldr r12, screen_addr
 
 	ldmia r1, {r2-r3}
 	str r2, plot_polygon_x0
