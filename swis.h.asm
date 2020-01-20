@@ -41,3 +41,7 @@
 .equ Event_VSync, 4
 
 .equ OS_ConvertHex4, 0xd2
+
+.equ QTM_Load, 0x47E40
+.equ QTM_Start, 0x47E41
+.equ QTM_Stop, 0x47E42

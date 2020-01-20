@@ -74,7 +74,24 @@ A3000 = 4771 = 18.9 fps
 ARM3 = 49.4fps!
 
 TODO
-- Fix palette
+- Fix palette - DONE
 - Centre screen
 - Music
 - Decide intro/outro
+
+RAM!
+On A3000 w/ 1Mb:
+- Next 640k
+- Free 64k
+- Screen 80k
+- System 32k <= fixed
+- Heap 32k <= fixed
+- Module 112k
+- Font cache 32k <= can be reduced to 0
+
+Overhead = 208k!!
+Require = 625k stream data, 146k MOD, 62k QTM, screen = 120k
+Code = 7k..
+Wimpslot = 625+146+7=
+
+Sarah says - don't expect more than 816K of usable RAM on a 1Mb machine. :(

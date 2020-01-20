@@ -5,6 +5,7 @@
 .equ _TESTS, 0
 .equ _UNROLL_SPAN, 1
 .equ _DRAW_WIREFRAME, 0
+.equ _ENABLE_MUSIC, 0
 
 .equ Screen_Banks, 3
 .equ Screen_Mode, 9
@@ -64,6 +65,13 @@ main:
 	SWI OS_WriteC
 	SWI OS_WriteC
 
+.if _ENABLE_MUSIC
+	; Load module
+	mov r0, #0
+	adrl r1, module_data
+	swi QTM_Load
+.endif
+
 	; Clear all screen buffers
 	mov r1, #1
 .1:
@@ -102,6 +110,10 @@ main:
 	mov r0, #OSByte_EventEnable
 	mov r1, #Event_VSync
 	SWI OS_Byte
+
+.if _ENABLE_MUSIC
+	swi QTM_Start
+.endif
 
 main_loop:   
 	; debug
@@ -1160,6 +1172,10 @@ span_buffer_min_y:
 span_buffer_max_y:
 	.long 0
 
+module_filename:
+	.byte "checknobankh"
+	.byte 0
+
 .p2align 8
 span_buffer_start:
 	.skip 1024, 0
@@ -1170,3 +1186,9 @@ span_buffer_end:
 
 scene1_data_stream:
 .incbin "data/scene1.bin"
+
+.if _ENABLE_MUSIC
+.p2align 8
+module_data:
+.incbin "data/checknobankh.mod"
+.endif
