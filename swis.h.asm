@@ -2,6 +2,7 @@
 .equ OS_WriteO, 2
 .equ OS_NewLine, 3
 .equ OS_Byte, 6
+.equ XOS_Byte, OS_Byte | (1 << 17)
 .equ OS_Word, 7
 .equ OS_File, 8
 .equ OS_Exit, 0x11
@@ -14,6 +15,8 @@
 .equ OS_ConvertHex8, 0xd4
 .equ OS_ConvertCardinal4, 0xd8	
 
+.equ OSByte_EventEnable, 14
+.equ OSByte_EventDisable, 13
 .equ OSByte_Vsync, 19
 .equ OSByte_WriteVDUBank, 112
 .equ OSByte_WriteDisplayBank, 113
@@ -32,6 +35,8 @@
 .equ OS_Claim, 0x1f
 .equ OS_Release, 0x20
 .equ OS_AddToVector, 0x47
+
+.equ ErrorV, 0x01
 .equ EventV, 0x10
 .equ Event_VSync, 4
 

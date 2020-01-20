@@ -68,9 +68,13 @@ A3020 = 3075 = 29.3 fps!
 A3000 = 4751 = 18.9 fps!
 (Wireframe A3020 = 40.6fps!!)
 
+VSync frame swap from Sarah (for ARM3 etc.)
+A3020 = 3123 = 28.8 fps
+A3000 = 4771 = 18.9 fps
+ARM3 = 49.4fps!
+
 TODO
 - Fix palette
 - Centre screen
 - Music
 - Decide intro/outro
-- 

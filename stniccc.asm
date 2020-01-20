@@ -84,6 +84,12 @@ main:
 	mov r1, #1
 	str r1, scr_bank
 	
+	; Claim the Error vector
+	MOV r0, #ErrorV
+	ADR r1, error_handler
+	MOV r2, #0
+	SWI OS_Claim
+
 	; Claim the Event vector
 	mov r0, #EventV
 	adr r1, event_handler
@@ -93,7 +99,7 @@ main:
 	bl initialise_span_buffer
 
 	; Enable Vsync event
-	mov r0, #14
+	mov r0, #OSByte_EventEnable
 	mov r1, #Event_VSync
 	SWI OS_Byte
 
@@ -101,11 +107,23 @@ main_loop:
 	; debug
 	bl debug_write_vsync_count
 
+	; Block if we've not even had a vsync since last time - we're >50Hz!
+	ldr r1, last_vsync
+.1:
+	ldr r2, vsync_count
+	cmp r1, r2
+	beq .1
+	str r2, last_vsync
+
 	; Swap banks
 	; Display whichever bank we've just written to
-	ldr r1, scr_bank
-	mov r0, #OSByte_WriteDisplayBank
-	swi OS_Byte
+	ldr r1, scr_bank			; bank we want to display next
+	str r1, buffer_pending		; we might overwrite a bank if too fast (drop a frame?)
+	; If we have more than 3 banks then this needs to be a queue
+
+	; This now happens in vsync event handler
+	;	mov r0, #OSByte_WriteDisplayBank
+	;	swi OS_Byte
 
 	; Increment to next bank for writing
 	ldr r1, scr_bank
@@ -113,6 +131,8 @@ main_loop:
 	cmp r1, #Screen_Banks
 	movgt r1, #1
 	str r1, scr_bank
+
+	; Now set the screen bank to write to
 	mov r0, #OSByte_WriteVDUBank
 	swi OS_Byte
 
@@ -239,7 +259,7 @@ exit:
 	swi OS_Byte
 
 	; disable vsync event
-	mov r0, #13
+	mov r0, #OSByte_EventDisable
 	mov r1, #Event_VSync
 	swi OS_Byte
 
@@ -248,6 +268,10 @@ exit:
 	adr r1, event_handler
 	mov r2, #0
 	swi OS_Release
+
+	; release our error handler
+	mov r0, #ErrorV
+	adr r1, error_handler
 
 	; Show our final frame count
 	bl debug_write_vsync_count
@@ -259,14 +283,64 @@ event_handler:
 	cmp r0, #Event_VSync
 	movnes pc, r14
 
-	ldr r12, vsync_count
-	add r12, r12, #1
-	str r12, vsync_count
+	STMDB sp!, {r0-r1, lr}
 
-	movs pc, r14
+	; update the vsync counter
+	LDR r0, vsync_count
+	ADD r0, r0, #1
+	STR r0, vsync_count
+
+	; is there a new screen buffer ready to display?
+	LDR r1, buffer_pending
+	CMP r1, #0
+	LDMEQIA sp!, {r0-r1, pc}
+
+	; set the display buffer
+	MOV r0, #0
+	STR r0, buffer_pending
+	MOV r0, #OSByte_WriteDisplayBank
+
+	; some SVC stuff I don't understand :)
+	STMDB sp!, {r2-r12}
+	MOV r9, pc     ;Save old mode
+	ORR r8, r9, #3 ;SVC mode
+	TEQP r8, #0
+	MOV r0,r0
+	STR lr, [sp, #-4]!
+	SWI XOS_Byte
+	LDR lr, [sp], #4
+	TEQP r9, #0    ;Restore old mode
+	MOV r0, r0
+	LDMIA sp!, {r2-r12}
+	LDMIA sp!, {r0-r1, pc}
 
 vsync_count:
 	.long 0
+
+last_vsync:
+	.long -1
+
+buffer_pending:
+	.long 0
+
+error_handler:
+	STMDB sp!, {r0-r2, lr}
+	MOV r0, #OSByte_EventDisable
+	MOV r1, #Event_VSync
+	SWI OS_Byte
+	MOV r0, #EventV
+	ADR r1, event_handler
+	mov r2, #0
+	SWI OS_Release
+	MOV r0, #ErrorV
+	ADR r1, error_handler
+	MOV r2, #0
+	SWI OS_Release
+	MOV r0, #OSByte_WriteDisplayBank
+	LDR r1, scr_bank
+	SWI OS_Byte
+	LDMIA sp!, {r0-r2, lr}
+	MOVS pc, lr
 
 ; R12=screen_addr, trashes r7, r8, r9
 window_cls:
