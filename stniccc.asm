@@ -283,7 +283,7 @@ event_handler:
 	cmp r0, #Event_VSync
 	movnes pc, r14
 
-	STMDB sp!, {r0-r1, lr}
+	STMDB sp!, {r0-r2, lr}
 
 	; update the vsync counter
 	LDR r0, vsync_count
@@ -293,15 +293,31 @@ event_handler:
 	; is there a new screen buffer ready to display?
 	LDR r1, buffer_pending
 	CMP r1, #0
-	LDMEQIA sp!, {r0-r1, pc}
+	LDMEQIA sp!, {r0-r2, pc}
 
 	; set the display buffer
 	MOV r0, #0
 	STR r0, buffer_pending
 	MOV r0, #OSByte_WriteDisplayBank
 
+	b .1
+	; set any pending palette
+	ldr r2, palette_count
+	cmp r2, #0
+	beq .1
+
+	mov r0, #12
+	adrl r1, palette_block
+.2:
+	swi OS_Word
+	add r1, r1, #8
+	subs r2, r2, #1
+	bne .2
+	str r2, palette_count
+
+.1:
 	; some SVC stuff I don't understand :)
-	STMDB sp!, {r2-r12}
+	STMDB sp!, {r3-r12}
 	MOV r9, pc     ;Save old mode
 	ORR r8, r9, #3 ;SVC mode
 	TEQP r8, #0
@@ -311,8 +327,8 @@ event_handler:
 	LDR lr, [sp], #4
 	TEQP r9, #0    ;Restore old mode
 	MOV r0, r0
-	LDMIA sp!, {r2-r12}
-	LDMIA sp!, {r0-r1, pc}
+	LDMIA sp!, {r3-r12}
+	LDMIA sp!, {r0-r2, pc}
 
 vsync_count:
 	.long 0
@@ -405,38 +421,49 @@ parse_frame:
 	mov r2, r1, lsl #24
 	orr r2, r2, r0, lsl #16		; r2 = r1 << 24 | r0 << 16
 
+	mov r6, #0					; r6 = palette_count
+
 	; read palette words
-	mov r1, #0					; r1=palette loop counter
+	mov r5, #0					; r1 = palette loop counter
 .2:
 	movs r2, r2, asl #1
 	bcc .3
 
 	; get_byte
-	ldrb r3, [r11], #1			; r3=xxxxrrrr
+	ldrb r3, [r11], #1			; r3 = xxxxrrrr
 	; get_byte
-	ldrb r4, [r11], #1			; r4=ggggbbbb
+	ldrb r4, [r11], #1			; r4 = ggggbbbb
 
-	; VDU 19,logical colour,16,red,green,blue
-	mov r0, #19
-	SWI OS_WriteC
-	mov r0, r1
-	SWI OS_WriteC
+	adrl r7, palette_block		; r7 = &palette_block
+
+	strb r5, [r7], #1				; logical colour
 	mov r0, #16
-	SWI OS_WriteC
+	strb r0, [r7], #1				; physical colour
+
 	mov r0, r3, lsl #5
 	and r0, r0, #0xF0
-	SWI OS_WriteC
+	strb r0, [r7], #1				; red component
+
 	and r0, r4, #0x70
 	mov r0, r0, lsl #1
-	SWI OS_WriteC
+	strb r0, [r7], #1				; green component
+
 	mov r0, r4, lsl #5
 	and r0, r0, #0xF0
-	SWI OS_WriteC
+	strb r0, [r7], #1+3				; blue component
+
+	mov r0, #12
+	adrl r1, palette_block
+	swi OS_Word
+
+	add r6, r6, #1					; palette_count++
 
 .3:
-	add r1, r1, #1
-	cmp r1, #16
+	add r5, r5, #1
+	cmp r5, #16
 	blt .2
+
+	str r6, palette_count
 
 .1:
 
@@ -1126,6 +1153,12 @@ test_poly_data:
 	.long 0, 0
 	.long 0, 0
 	.long 0, 0
+
+palette_count:
+	.long 0
+
+palette_block:
+	.skip 8*16
 
 span_buffer_min_y:
 	.long 0
