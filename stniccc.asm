@@ -120,10 +120,25 @@ main_loop:
 	ldr r1, scr_bank			; bank we want to display next
 	str r1, buffer_pending		; we might overwrite a bank if too fast (drop a frame?)
 	; If we have more than 3 banks then this needs to be a queue
-
 	; This now happens in vsync event handler
 	;	mov r0, #OSByte_WriteDisplayBank
 	;	swi OS_Byte
+
+	; Set the palette from the previous frame if there is one
+	ldr r9, palette_count
+	cmp r9, #0
+	beq .2
+
+	mov r0, #12
+	adrl r1, palette_block
+.3:
+	swi OS_Word
+	add r1, r1, #8
+	subs r9, r9, #1
+	bne .3
+
+	str r9, palette_count
+.2:
 
 	; Increment to next bank for writing
 	ldr r1, scr_bank
@@ -283,7 +298,7 @@ event_handler:
 	cmp r0, #Event_VSync
 	movnes pc, r14
 
-	STMDB sp!, {r0-r2, lr}
+	STMDB sp!, {r0-r1, lr}
 
 	; update the vsync counter
 	LDR r0, vsync_count
@@ -293,31 +308,15 @@ event_handler:
 	; is there a new screen buffer ready to display?
 	LDR r1, buffer_pending
 	CMP r1, #0
-	LDMEQIA sp!, {r0-r2, pc}
+	LDMEQIA sp!, {r0-r1, pc}
 
 	; set the display buffer
 	MOV r0, #0
 	STR r0, buffer_pending
 	MOV r0, #OSByte_WriteDisplayBank
 
-	b .1
-	; set any pending palette
-	ldr r2, palette_count
-	cmp r2, #0
-	beq .1
-
-	mov r0, #12
-	adrl r1, palette_block
-.2:
-	swi OS_Word
-	add r1, r1, #8
-	subs r2, r2, #1
-	bne .2
-	str r2, palette_count
-
-.1:
 	; some SVC stuff I don't understand :)
-	STMDB sp!, {r3-r12}
+	STMDB sp!, {r2-r12}
 	MOV r9, pc     ;Save old mode
 	ORR r8, r9, #3 ;SVC mode
 	TEQP r8, #0
@@ -327,8 +326,8 @@ event_handler:
 	LDR lr, [sp], #4
 	TEQP r9, #0    ;Restore old mode
 	MOV r0, r0
-	LDMIA sp!, {r3-r12}
-	LDMIA sp!, {r0-r2, pc}
+	LDMIA sp!, {r2-r12}
+	LDMIA sp!, {r0-r1, pc}
 
 vsync_count:
 	.long 0
@@ -422,6 +421,7 @@ parse_frame:
 	orr r2, r2, r0, lsl #16		; r2 = r1 << 24 | r0 << 16
 
 	mov r6, #0					; r6 = palette_count
+	adrl r7, palette_block		; r7 = &palette_block
 
 	; read palette words
 	mov r5, #0					; r1 = palette loop counter
@@ -434,29 +434,24 @@ parse_frame:
 	; get_byte
 	ldrb r4, [r11], #1			; r4 = ggggbbbb
 
-	adrl r7, palette_block		; r7 = &palette_block
-
-	strb r5, [r7], #1				; logical colour
+	strb r5, [r7], #1			; logical colour
 	mov r0, #16
-	strb r0, [r7], #1				; physical colour
+	strb r0, [r7], #1			; physical colour
 
 	mov r0, r3, lsl #5
-	and r0, r0, #0xF0
-	strb r0, [r7], #1				; red component
+	orr r0, r0, #0x10
+	strb r0, [r7], #1			; red component
 
 	and r0, r4, #0x70
 	mov r0, r0, lsl #1
-	strb r0, [r7], #1				; green component
+	orr r0, r0, #0x10
+	strb r0, [r7], #1			; green component
 
 	mov r0, r4, lsl #5
-	and r0, r0, #0xF0
-	strb r0, [r7], #1+3				; blue component
+	orr r0, r0, #0x10
+	strb r0, [r7], #1+3			; blue component
 
-	mov r0, #12
-	adrl r1, palette_block
-	swi OS_Word
-
-	add r6, r6, #1					; palette_count++
+	add r6, r6, #1				; palette_count++
 
 .3:
 	add r5, r5, #1
