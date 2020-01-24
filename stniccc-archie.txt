@@ -92,6 +92,10 @@ On A3000 w/ 1Mb:
 Overhead = 208k!!
 Require = 625k stream data, 146k MOD, 62k QTM, screen = 120k
 Code = 7k..
-Wimpslot = 625+146+7=
 
 Sarah says - don't expect more than 816K of usable RAM on a 1Mb machine. :(
+
+Could squeeze screens to 96k = 3 * 32k by using 256x200 resolution
+Need to fit player and MOD into ~100K :\
+
+Removing 64k alignment from stream data only saves ~2K.

@@ -32,7 +32,34 @@ stack_base:
 scr_bank:
 	.long 0
 
+top_addr:
+	.long 0
+
 main:
+	mov r0, #16
+	adrl r1, data_filename
+	adrl r2, scene1_data_stream
+	mov r3, #0
+	swi OS_File
+
+	adrl r12, scene1_data_stream
+	; R4=file length
+	add r10, r12, r4
+	add r10, r10, #0xff
+	bic r10, r10, #0xff
+
+	bl exo_decrunch_new
+
+	mov r0, #0
+	adrl r1, save_filename
+	mov r2, #0x8000
+	mov r3, #0x8000
+	mov r4, r10			; start address
+	ldr r5, top_addr	; end address
+	swi OS_File
+
+	swi OS_Exit
+
 	MOV r0,#22	;Set MODE
 	SWI OS_WriteC
 	MOV r0,#Screen_Mode
@@ -1176,6 +1203,14 @@ module_filename:
 	.byte "checknobankh"
 	.byte 0
 
+data_filename:
+	.byte "scene2/oxe"
+	.byte 0
+
+save_filename:
+	.byte "test/bin"
+	.byte 0
+
 .p2align 8
 span_buffer_start:
 	.skip 1024, 0
@@ -1184,8 +1219,11 @@ span_buffer_start:
 span_buffer_end:
 	.skip 1024,0 
 
+.include "exodecrunch.asm"
+
+.p2align 8
 scene1_data_stream:
-.incbin "data/scene1.bin"
+;.incbin "data/scene2.exo"
 
 .if _ENABLE_MUSIC
 .p2align 8
