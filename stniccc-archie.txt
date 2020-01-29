@@ -99,3 +99,11 @@ Could squeeze screens to 96k = 3 * 32k by using 256x200 resolution
 Need to fit player and MOD into ~100K :\
 
 Removing 64k alignment from stream data only saves ~2K.
+
+First run w/ Exo at 8K buffer
+A3030 = 4052 = +929 frames! = 22.2 fps
+A3000 = 6337 = +1566 frames! = 14.2 fps
+
+Size inc buffer = 477287 bytes = 466.1K
+Original = 639976 bytes = 625K
+Saving 162689 bytes = 158.9K

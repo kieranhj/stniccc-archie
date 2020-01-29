@@ -498,13 +498,18 @@ window_cls:
 .equ POLY_DESC_END_OF_FRAME, 0xff
 
 .macro GET_BYTE reg
-ldrb \reg, [r11], #1
+;ldrb \reg, [r11], #1
+stmfd sp!, {r1-r12}
+bl exo_read_decrunched_byte
+ldmfd sp!, {r1-r12}
+add r11, r11, #1
+mov \reg, r0
 .endm
 
-; R12=screen_addr
 parse_frame:
 	stmfd sp!, {lr}
 
+	mov r0,r0;wtaf
 	ldr r11, parse_frame_ptr
 
 	; get_byte
@@ -575,6 +580,7 @@ parse_frame:
 	; get_byte
 	GET_BYTE r1					; r1 = num_verts
 
+.if 0
 	; store ptr to literal vertex data
 	mov r8, r11
 	add r9, r8, #1
@@ -582,6 +588,20 @@ parse_frame:
 	; next is an array of (x,y) bytes
 
 	add r11, r11, r1, lsl #1	; skip num_verts*2 bytes
+.else
+	adrl r8, vertex_buffer
+	mov r9, r1
+	.4:
+		GET_BYTE r0				; x
+		strb r0, [r8], #1
+		GET_BYTE r0				; y
+		strb r0, [r8], #1
+		subs r9, r9, #1
+		bne .4
+
+	adrl r8, vertex_buffer
+	add r9, r8, #1
+.endif
 
 parse_frame_read_poly_data:
 
@@ -605,7 +625,7 @@ parse_frame_read_poly_data:
 	beq non_indexed_data
 
 	; indexed
-	mov r0, r1
+	mov r12, r1
 .5:
 	; read index
 	; get_byte
@@ -618,14 +638,14 @@ parse_frame_read_poly_data:
 	; store into a temp array for now
 	stmia r6!, {r2, r3}			; *temp_poly_data++ = x
 
-	subs r1, r1, #1
+	subs r12, r12, #1
 	bne .5
 	b parse_plot_poly
 
 non_indexed_data:
 
 	; non-indexed
-	mov r0, r1
+	mov r12, r1
 .6:
 	; copy (x,y) bytes directly to temp array
 	; get_byte
@@ -636,7 +656,7 @@ non_indexed_data:
 	; store into a temp array for now
 	stmia r6!, {r2, r3}			; *temp_poly_data++ = x, y
 
-	subs r1, r1, #1
+	subs r12, r12, #1
 	bne .6
 
 parse_plot_poly:
@@ -644,6 +664,7 @@ parse_plot_poly:
 	; store off any registers we need here!
 	stmfd sp!, {r8-r11}
 
+	mov r0, r1
 	; plot the polygon!
 	adrl r1, test_poly_data
 	; r4=palette
@@ -664,21 +685,13 @@ parse_end_of_frame:
 	cmp r0, #POLY_DESC_SKIP_TO_64K
 	bne .1
 
-	; make ptr relative to 0
-	adr r1, scene1_data_stream
-	sub r11, r11, r1
-
 	; align ptr to 64K
 	; ptr += 0xffff
-	add r11, r11, #0xff
-	add r11, r11, #0xff00
-
-	; ptr AND= 0xffff0000
-	bic r11, r11, #0x000000ff
-	bic r11, r11, #0x0000ff00
-
-	; add base back to ptr
-	add r11, r11, r1
+	.2:
+		GET_BYTE r0
+		bic r0, r11, #0xff000000
+		bics r0, r0,  #0x00ff0000
+		bne .2
 .1:
 	str r11, parse_frame_ptr
 
@@ -686,7 +699,7 @@ parse_end_of_frame:
 	mov pc, lr
 
 parse_frame_ptr:
-	.long scene1_data_stream
+	.long 0	;scene1_data_stream
 
 
 ; reserved r15, r14, r13
@@ -1272,7 +1285,7 @@ module_filename:
 	.byte 0
 
 data_filename:
-	.byte "scene1/bin"	;"scene1_8k/exo"
+	.byte "scene1_8k/exo"
 	.byte 0
 
 .p2align 8
@@ -1282,6 +1295,10 @@ span_buffer_start:
 .p2align 8
 span_buffer_end:
 	.skip 1024,0 
+
+.p2align 8
+vertex_buffer:
+	.skip 256*2,0
 
 .include "exodecrunch.asm"
 
