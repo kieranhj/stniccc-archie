@@ -6,6 +6,7 @@
 .equ _UNROLL_SPAN, 1
 .equ _DRAW_WIREFRAME, 0
 .equ _ENABLE_MUSIC, 0
+.equ _DEBUG, 1
 
 .equ Screen_Banks, 3
 .equ Screen_Mode, 9
@@ -32,33 +33,17 @@ stack_base:
 scr_bank:
 	.long 0
 
-top_addr:
-	.long 0
-
 main:
 	mov r0, #16
 	adrl r1, data_filename
 	adrl r2, scene1_data_stream
 	mov r3, #0
 	swi OS_File
+	; R4=file length
 
 	adrl r12, scene1_data_stream
-	; R4=file length
-	add r10, r12, r4
-	add r10, r10, #0xff
-	bic r10, r10, #0xff
-
+	; init decruncher
 	bl exo_decrunch_new
-
-	mov r0, #0
-	adrl r1, save_filename
-	mov r2, #0x8000
-	mov r3, #0x8000
-	mov r4, r10			; start address
-	ldr r5, top_addr	; end address
-	swi OS_File
-
-	swi OS_Exit
 
 	MOV r0,#22	;Set MODE
 	SWI OS_WriteC
@@ -278,6 +263,7 @@ error_noscreenmem:
 	.align 4
 	.long 0
 
+.if _DEBUG
 debug_write_vsync_count:
 	mov r0, #30
 	swi OS_WriteC
@@ -291,8 +277,87 @@ debug_write_vsync_count:
 	swi OS_WriteO
 	mov pc, r14
 
+debug_write_r0:
+	adr r1, debug_string
+	mov r2, #8
+	swi OS_ConvertHex2
+	adr r0, debug_string
+	swi OS_WriteO
+	mov r0, #32
+	swi OS_WriteC
+	mov pc, r14
+
+debug_write_16:
+	adr r1, debug_string
+	mov r2, #8
+	swi OS_ConvertHex4
+	adr r0, debug_string
+	swi OS_WriteO
+	mov r0, #32
+	swi OS_WriteC
+	mov pc, r14
+
+debug_write_32:
+	adr r1, debug_string
+	mov r2, #12
+	swi OS_ConvertHex8
+	adr r0, debug_string
+	swi OS_WriteO
+	mov r0, #32
+	swi OS_WriteC
+	mov pc, r14
+
 debug_string:
-	.skip 8
+	.skip 12
+.endif
+
+.if _TESTS
+top_addr:
+	.long 0
+
+end_addr:
+	.long 0x40100
+
+test_exo:
+	str lr, [sp, #-4]!
+	mov r0, #16
+	adrl r1, data_filename
+	adrl r2, scene1_data_stream
+	mov r3, #0
+	swi OS_File
+
+	adrl r12, scene1_data_stream
+	; R4=file length
+	add r10, r12, r4
+	add r10, r10, #0xff
+	bic r10, r10, #0xff
+	str r10, top_addr
+
+	; init decruncher
+	bl exo_decrunch_new
+
+	ldr r8, top_addr
+;	mov r8, #0
+
+	.1:
+	bl exo_read_decrunched_byte
+	cmp r0, #-1
+	beq .2
+
+	strb r0, [r8], #1
+	b .1
+
+	.2:
+	mov r0, #0
+	adrl r1, save_filename
+	mov r2, #0x8000
+	mov r3, #0x8000
+	ldr r4, top_addr	; start address
+	mov r5, r8			; end address
+	swi OS_File
+
+	ldr pc, [sp], #4
+.endif
 
 get_screen_addr:
 	str lr, [sp, #-4]!
@@ -432,6 +497,10 @@ window_cls:
 .equ POLY_DESC_END_OF_STREAM, 0xfd
 .equ POLY_DESC_SKIP_TO_64K, 0xfe
 .equ POLY_DESC_END_OF_FRAME, 0xff
+
+.macro GET_BYTE reg
+ldrb reg, [r11], #1
+.endm
 
 ; R12=screen_addr
 parse_frame:
@@ -1204,7 +1273,7 @@ module_filename:
 	.byte 0
 
 data_filename:
-	.byte "scene2/oxe"
+	.byte "scene1/bin"
 	.byte 0
 
 save_filename:

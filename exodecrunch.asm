@@ -16,8 +16,31 @@
 ;    unsigned short int base;
 ;};
 
+ctx_debug:
+	str lr, [sp, #-4]!
+
+    ldr r0, ctx_state
+    bl debug_write_r0
+
+    ldr r0, ctx_length
+    bl debug_write_16
+
+    ldr r0, ctx_offset
+    bl debug_write_16
+
+    ldr r0, ctx_window_pos
+    bl debug_write_16
+
+    ldr r0, ctx_bit_buffer
+    bl debug_write_r0
+
+    ldr r0, ctx_read_data
+    bl debug_write_32
+
+	ldr pc, [sp], #4        ; return bits;
+
 ctx_window_length:
-    .long 0                 ; unsigned short int window_length;
+    .long MAX_OFFSET        ; unsigned short int window_length;
 
 ctx_state:
     .long 0                 ; enum exo_state state;
@@ -37,7 +60,7 @@ ctx_read_data:
 ; R0 = carry_in
 ; R0 = carry_out
 bitbuffer_rotate:
-    mov r11, r11, asl #1    ; bit_buffer <<= 1;
+    mov r11, r11, lsl #1    ; bit_buffer <<= 1;
     orr r11, r11, r0        ; if (carry) bit_buffer |= 0x01;
     mov r0, r11, lsr #8     ; C = carry_out
     and r11, r11, #0xff     ; unsigned char
@@ -65,7 +88,7 @@ read_bits:
 .1:
     cmp r1, #0
     beq .2
-    subs r1, r1, #1         ; while(bit_count-- > 0)
+    sub r1, r1, #1          ; while(bit_count-- > 0)
 
     mov r0, #0              
     bl bitbuffer_rotate
@@ -80,7 +103,7 @@ read_bits:
     bl bitbuffer_rotate
                             ; R0 = carry = bitbuffer_rotate(1);
 .3:
-    mov r2, r2, asl #1      ; bits <<= 1;
+    mov r2, r2, lsl #1      ; bits <<= 1;
     orr r2, r2, r0          ; bits |= carry;
 
     b .1                    ; while(bit_count-- > 0)
@@ -172,6 +195,7 @@ get_gamma_code:
 .1:
     mov r1, #1
     bl read_bits
+    cmp r2, #0
     bne .2                  ; while(read_bits(ctx, 1) == 0)
     add r5, r5, #1          ;  ++gamma;
     b .1
@@ -189,23 +213,34 @@ read_byte_from_window:
     ldr r0, ctx_window_pos
     subs r0, r0, r9         ; read_pos = ctx->window_pos - offset;
 
-    ldrlt r9, ctx_window_length ; if(read_pos < 0)
-    addlt r0, r0, r9            ; read_pos += ctx->window_length;
+    ldrlt r10, ctx_window_length ; if(read_pos < 0)
+    addlt r0, r0, r10            ; read_pos += ctx->window_length;
 
-    ldr r0, [r10, r0]        ; return ctx->window[read_pos];
+    adrl r10, exo_window
+    ldrb r0, [r10, r0]        ; return ctx->window[read_pos];
 
     mov pc, lr
 
 
+; R12 = ctx->read_data
+; R11 = ctx->bit_buffer
+; R10 = ctx->window
+; R9 = ctx->offset
+; R6 = ctx->length
+; R4 = ctx->state
+; R5 = length_index
+; R7 = table_entry
+; Returns R0
 exo_read_decrunched_byte:
 	str lr, [sp, #-4]!
 
     ; Load the context
-    ldr r11, ctx_bit_buffer
-    ldr r12, ctx_read_data
-    adr r10, exo_window
-
-    ldr r4, ctx_state
+    ldr r11, ctx_bit_buffer ; r11 = ctx->bit_buffer
+    ldr r12, ctx_read_data  ; r12 = ctx->read_data
+    adr r10, exo_window     ; r10 = ctx->window
+    ldr r9, ctx_offset      ; r9 = ctx->offset
+    ldr r6, ctx_length      ; r6 = ctx->length
+    ldr r4, ctx_state       ; r4 = ctx->state
 
 state_implicit_first_literal:
 
@@ -218,12 +253,12 @@ state_implicit_first_literal:
 
 state_eof_default:
 
+    mov r4, #STATE_EOF    ; if(length_index == 16)
+    str r4, ctx_state     ; ctx->state = STATE_EOF;
     mov r0, #-1
 	ldr pc, [sp], #4        ; return -1
 
 state_next_byte:
-
-    ldr r6, ctx_length      ; r6 = ctx->length
 
     cmp r4, #STATE_NEXT_BYTE
     bne state_next_literal_byte
@@ -241,18 +276,16 @@ state_next_byte:
     ; sequence
     bl get_gamma_code       ; length_index = get_gamma_code(ctx);
 
-    cmp r5, #16
     ; end of data marker, we're done
-    moveq r4, #STATE_EOF    ; if(length_index == 16)
-    streq r4, ctx_state     ; ctx->state = STATE_EOF;
+    cmp r5, #16
     beq state_eof_default   ; return -1
 
     cmp r5, #17             ; if(length_index == 17)
-    bne state_next_byte_sequence
+    bne state_next_byte_cont
 
     ; literal data block
     bl read_byte
-    mov r6, r0, lsl 8       ; ctx->length = ctx->read_byte(ctx->read_data) << 8;
+    mov r6, r0, lsl #8      ; ctx->length = ctx->read_byte(ctx->read_data) << 8;
     bl read_byte
     orr r6, r6, r0          ; ctx->length |= ctx->read_byte(ctx->read_data);
     mov r4, #STATE_NEXT_LITERAL_BYTE    ; ctx->state = STATE_NEXT_LITERAL_BYTE;
@@ -262,45 +295,73 @@ state_next_literal_byte:
     cmp r4, #STATE_NEXT_LITERAL_BYTE
     bne state_next_sequence_byte
 
-    subs r4, r4, #1                 ; if(--ctx->length == 0)
+    subs r6, r6, #1                 ; if(--ctx->length == 0)
     moveq r4, #STATE_NEXT_BYTE      ; ctx->state = STATE_NEXT_BYTE;
 
     bl read_byte
     b break_switch
 
-state_next_byte_sequence:
+state_next_byte_cont:
     ; sequence
-    adr r7, exo_table_lengths   ; table_entry = ctx->lengths + length_index;
-    ldr r1, [r7, r5, lsl #3]!   ; table_entry->bits
+    adr r7, exo_table_lengths   
+    add r7, r7, r5, lsl #3      ; table_entry = ctx->lengths + length_index;
+    ldr r1, [r7, #4]            ; table_entry->bits
     bl read_bits
 
-    ldr r6, [r7, #4]            ; table_entry->base
+    ldr r6, [r7]                ; table_entry->base
     add r6, r6, r2              ; ctx->length = table_entry->base + read_bits(ctx, table_entry->bits);
 
     ;switch(ctx->length)
 .1:
     cmp r6, #1
     bne .2
+    ; case 1:
+    adr r7, exo_table_offsets1  ; table_entry = ctx->offsets1 + read_bits(ctx, 2);
+    mov r1, #2
+    b .4
 
 .2:
+    ; case 2:
     cmp r6, #2
     bne .3
+    adr r7, exo_table_offsets2  ; table_entry = ctx->offsets2 + read_bits(ctx, 4);
+    mov r1, #4
+    b .4
 
 .3:
+    ; default:
+    adr r7, exo_table_offsets3  ; table_entry = ctx->offsets2 + read_bits(ctx, 4);
+    mov r1, #4
+    ; drop through
+
+.4:
+    bl read_bits
+    add r7, r7, r2, lsl #3      ; table_entry += read_bits(ctx, n)
+
+    ldr r1, [r7, #4]            ; table_entry->bits
+    bl read_bits                ; read_bits(ctx, table_entry->bits);
+
+    ldr r9, [r7]                ; table_entry->base
+    add r9, r9, r2              ; r9 = ctx->offset = table_entry->base + read_bits(ctx, table_entry->bits);
+
+    mov r4, #STATE_NEXT_SEQUENCE_BYTE   ; ctx->state = STATE_NEXT_SEQUENCE_BYTE;
 
 state_next_sequence_byte:
 
     cmp r4, #STATE_NEXT_SEQUENCE_BYTE
     bne state_eof_default
 
+    subs r6, r6, #1             ; --ctx->length
+    moveq r4, #STATE_NEXT_BYTE  ; if(--ctx->length == 0) ctx->state = STATE_NEXT_BYTE;
 
-
-
-
+    bl read_byte_from_window    ; c = read_byte_from_window(ctx, ctx->offset);
+    ; fall through
+    
 break_switch:
 
     ; Store byte in the window
     ldr r1, ctx_window_pos
+    adrl r10, exo_window
     strb r0, [r10, r1]      ; ctx->window[ctx->window_pos++] = (unsigned char)c;
     add r1, r1, #1
     ldr r2, ctx_window_length
@@ -312,6 +373,7 @@ break_switch:
     ; Store the context
     str r4, ctx_state
     str r6, ctx_length
+    str r9, ctx_offset
     str r11, ctx_bit_buffer
     str r12, ctx_read_data
 	ldr pc, [sp], #4        ; return r0
@@ -329,4 +391,4 @@ exo_table_offsets1:
     .skip TABLE_ENTRY_SIZE * 4
 
 exo_window:
-    .skip MAX_OFFSET
+    .skip MAX_OFFSET + 1
