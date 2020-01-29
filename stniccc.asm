@@ -3,7 +3,7 @@
 ; 
 
 .equ _TESTS, 0
-.equ _TEST_EXO, 1
+.equ _TEST_EXO, 0
 .equ _UNROLL_SPAN, 1
 .equ _DRAW_WIREFRAME, 0
 .equ _ENABLE_MUSIC, 0
@@ -351,6 +351,11 @@ test_exo:
 	swi OS_File
 
 	ldr pc, [sp], #4
+
+save_filename:
+	.byte "test/bin"
+	.byte 0
+	.align 4
 .endif
 
 get_screen_addr:
@@ -493,7 +498,7 @@ window_cls:
 .equ POLY_DESC_END_OF_FRAME, 0xff
 
 .macro GET_BYTE reg
-ldrb reg, [r11], #1
+ldrb \reg, [r11], #1
 .endm
 
 ; R12=screen_addr
@@ -503,7 +508,7 @@ parse_frame:
 	ldr r11, parse_frame_ptr
 
 	; get_byte
-	ldrb r10, [r11], #1			; r10=frame_flags
+	GET_BYTE r10				; r10=frame_flags
 
 	tst r10, #FLAG_CLEAR_SCREEN
 	.if _DRAW_WIREFRAME
@@ -516,9 +521,9 @@ parse_frame:
 	beq .1						; no_palette
 
 	; get_byte
-	ldrb r1, [r11], #1			; r1=palette_mask HI
+	GET_BYTE r1					; r1=palette_mask HI
 	; get_byte
-	ldrb r0, [r11], #1			; r0=palette_mask LO
+	GET_BYTE r0					; r0=palette_mask LO
 	mov r2, r1, lsl #24
 	orr r2, r2, r0, lsl #16		; r2 = r1 << 24 | r0 << 16
 
@@ -532,9 +537,9 @@ parse_frame:
 	bcc .3
 
 	; get_byte
-	ldrb r3, [r11], #1			; r3 = xxxxrrrr
+	GET_BYTE r3					; r3 = xxxxrrrr
 	; get_byte
-	ldrb r4, [r11], #1			; r4 = ggggbbbb
+	GET_BYTE r4					; r4 = ggggbbbb
 
 	strb r5, [r7], #1			; logical colour
 	mov r0, #16
@@ -568,7 +573,7 @@ parse_frame:
 	beq parse_frame_read_poly_data
 
 	; get_byte
-	ldrb r1, [r11], #1			; r0=num_verts
+	GET_BYTE r1					; r1 = num_verts
 
 	; store ptr to literal vertex data
 	mov r8, r11
@@ -581,7 +586,7 @@ parse_frame:
 parse_frame_read_poly_data:
 
 	; get_byte
-	ldrb r0, [r11], #1			; r0=poly_descriptor
+	GET_BYTE r0					; r0 = poly_descriptor
 
 	; end of frame marker?
 	cmp r0, #POLY_DESC_END_OF_STREAM
@@ -604,7 +609,7 @@ parse_frame_read_poly_data:
 .5:
 	; read index
 	; get_byte
-	ldrb r5, [r11], #1			; r5=index
+	GET_BYTE r5					; r5 = index
 
 	; lookup verts
 	ldrb r2, [r8, r5, lsl #1]	; r2=vertices_x[i]
@@ -624,9 +629,9 @@ non_indexed_data:
 .6:
 	; copy (x,y) bytes directly to temp array
 	; get_byte
-	ldrb r2, [r11], #1			; r2=x
+	GET_BYTE r2					; r2 = x
 	; get_byte
-	ldrb r3, [r11], #1			; r3=y
+	GET_BYTE r3					; r3 = y
 
 	; store into a temp array for now
 	stmia r6!, {r2, r3}			; *temp_poly_data++ = x, y
@@ -1267,11 +1272,7 @@ module_filename:
 	.byte 0
 
 data_filename:
-	.byte "scene1_8k/exo"
-	.byte 0
-
-save_filename:
-	.byte "test/bin"
+	.byte "scene1/bin"	;"scene1_8k/exo"
 	.byte 0
 
 .p2align 8
