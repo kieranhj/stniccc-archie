@@ -3,6 +3,7 @@
 ; 
 
 .equ _TESTS, 0
+.equ _TEST_EXO, 1
 .equ _UNROLL_SPAN, 1
 .equ _DRAW_WIREFRAME, 0
 .equ _ENABLE_MUSIC, 0
@@ -42,8 +43,21 @@ main:
 	; R4=file length
 
 	adrl r12, scene1_data_stream
+.if _TEST_EXO
+	; R4=file length
+	add r10, r12, r4
+	add r10, r10, #0xff
+	bic r10, r10, #0xff
+	str r10, top_addr
+.endif
+
 	; init decruncher
 	bl exo_decrunch_new
+
+.if _TEST_EXO
+	bl test_exo
+	swi OS_Exit
+.endif
 
 	MOV r0,#22	;Set MODE
 	SWI OS_WriteC
@@ -311,33 +325,13 @@ debug_string:
 	.skip 12
 .endif
 
-.if _TESTS
+.if _TEST_EXO
 top_addr:
 	.long 0
 
-end_addr:
-	.long 0x40100
-
 test_exo:
 	str lr, [sp, #-4]!
-	mov r0, #16
-	adrl r1, data_filename
-	adrl r2, scene1_data_stream
-	mov r3, #0
-	swi OS_File
-
-	adrl r12, scene1_data_stream
-	; R4=file length
-	add r10, r12, r4
-	add r10, r10, #0xff
-	bic r10, r10, #0xff
-	str r10, top_addr
-
-	; init decruncher
-	bl exo_decrunch_new
-
 	ldr r8, top_addr
-;	mov r8, #0
 
 	.1:
 	bl exo_read_decrunched_byte
@@ -1273,7 +1267,7 @@ module_filename:
 	.byte 0
 
 data_filename:
-	.byte "scene1/bin"
+	.byte "scene1_8k/exo"
 	.byte 0
 
 save_filename:

@@ -7,7 +7,7 @@
 .equ STATE_NEXT_SEQUENCE_BYTE, 3
 .equ STATE_EOF, 4
 
-.equ MAX_OFFSET, 65535
+.equ MAX_OFFSET, 8192;   65535
 .equ TABLE_ENTRY_SIZE, 8
 
 ;struct exo_table_entry
@@ -391,4 +391,4 @@ exo_table_offsets1:
     .skip TABLE_ENTRY_SIZE * 4
 
 exo_window:
-    .skip MAX_OFFSET + 1
+    .skip MAX_OFFSET; + 1
