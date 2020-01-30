@@ -110,7 +110,7 @@ Saving 162689 bytes = 158.9K
 
 TODOs:
 - Load context with LDM
-- Jump table for switch?
+- Jump table for switch - DONE
 - Inline read_byte - DONE
 - Inline rotate bits - DONE
 - Read decrunched data from window

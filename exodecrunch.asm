@@ -223,10 +223,12 @@ exo_read_decrunched_byte:
     ldr r6, ctx_length      ; r6 = ctx->length
     ldr r4, ctx_state       ; r4 = ctx->state
 
+    adrl r0, exo_decrunch_state_jump
+    add r0, r0, r4, lsl #2
+    mov pc, r0              ; switch(ctx->state)
+
 state_implicit_first_literal:
 
-    cmp r4, #STATE_IMPLICIT_FIRST_LITERAL_BYTE
-    bne state_next_byte
     ; literal byte
     EXO_READ_BYTE
     mov r4, #STATE_NEXT_BYTE
@@ -240,9 +242,6 @@ state_eof_default:
 	ldr pc, [sp], #4        ; return -1
 
 state_next_byte:
-
-    cmp r4, #STATE_NEXT_BYTE
-    bne state_next_literal_byte
 
     mov r1, #1
     bl read_bits            ; if(read_bits(ctx, 1) == 1)
@@ -270,11 +269,9 @@ state_next_byte:
     EXO_READ_BYTE
     orr r6, r6, r0          ; ctx->length |= ctx->read_byte(ctx->read_data);
     mov r4, #STATE_NEXT_LITERAL_BYTE    ; ctx->state = STATE_NEXT_LITERAL_BYTE;
+    ; fall through!
 
 state_next_literal_byte:
-
-    cmp r4, #STATE_NEXT_LITERAL_BYTE
-    bne state_next_sequence_byte
 
     subs r6, r6, #1                 ; if(--ctx->length == 0)
     moveq r4, #STATE_NEXT_BYTE      ; ctx->state = STATE_NEXT_BYTE;
@@ -314,7 +311,6 @@ state_next_byte_cont:
     adr r7, exo_table_offsets3  ; table_entry = ctx->offsets2 + read_bits(ctx, 4);
     mov r1, #4
     ; drop through
-
 .4:
     bl read_bits
     add r7, r7, r2, lsl #3      ; table_entry += read_bits(ctx, n)
@@ -326,11 +322,9 @@ state_next_byte_cont:
     add r9, r9, r2              ; r9 = ctx->offset = table_entry->base + read_bits(ctx, table_entry->bits);
 
     mov r4, #STATE_NEXT_SEQUENCE_BYTE   ; ctx->state = STATE_NEXT_SEQUENCE_BYTE;
+    ; fall through!
 
 state_next_sequence_byte:
-
-    cmp r4, #STATE_NEXT_SEQUENCE_BYTE
-    bne state_eof_default
 
     subs r6, r6, #1             ; --ctx->length
     moveq r4, #STATE_NEXT_BYTE  ; if(--ctx->length == 0) ctx->state = STATE_NEXT_BYTE;
@@ -362,6 +356,13 @@ store_byte_in_window_and_return:
     str r11, ctx_bit_buffer
     str r12, ctx_read_data
 	ldr pc, [sp], #4        ; return r0
+
+exo_decrunch_state_jump:
+    b state_implicit_first_literal
+    b state_next_byte
+    b state_next_literal_byte
+    b state_next_sequence_byte
+    b state_eof_default
 
 exo_table_lengths:
     .skip TABLE_ENTRY_SIZE * 16
