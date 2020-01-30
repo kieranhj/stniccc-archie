@@ -118,3 +118,7 @@ TODOs:
 
 A3020 = 3853 = 23.4 fps
 A3000 = 5939 = 15.2 fps - Doh! Need 11% more for music!
+
+Read out of window
+A3020 = 3756 = 24.0 fps
+RTW suggests reordering the bitstream so lsb first - can just mask in ARM

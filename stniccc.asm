@@ -54,6 +54,14 @@ main:
 	; init decruncher
 	bl exo_decrunch_new
 
+	; fill exo window
+	mov r8, #0
+	.2:
+	bl exo_read_decrunched_byte
+	add r8, r8, #1
+	cmp r8, #WINDOW_LENGTH
+	bne .2
+
 .if _TEST_EXO
 	bl test_exo
 	swi OS_Exit
@@ -255,9 +263,23 @@ my_test_points:
 	b exit
 .endif
 
+	; Store current ptr
+	ldr r0, parse_frame_ptr
+	str r0, parse_frame_prev
+
 	bl parse_frame
 	cmp r0, #POLY_DESC_END_OF_STREAM
 	beq exit
+
+	; Catch up the decompressor
+	ldr r8, parse_frame_ptr
+	ldr r0, parse_frame_prev
+	subs r8, r8, r0
+	addlt r8, r8, #WINDOW_LENGTH
+	.4:
+	bl exo_read_decrunched_byte
+	subs r8, r8, #1
+	bne .4
 
 	;Exit if SPACE is pressed
 	MOV r0, #OSByte_ReadKey
@@ -498,12 +520,21 @@ window_cls:
 .equ POLY_DESC_END_OF_FRAME, 0xff
 
 .macro GET_BYTE reg
+.if 0
 ;ldrb \reg, [r11], #1
 stmfd sp!, {r1-r12}
 bl exo_read_decrunched_byte
 ldmfd sp!, {r1-r12}
 add r11, r11, #1
 mov \reg, r0
+.else
+ldrb \reg, [r11], #1
+str \reg, [sp, #-4]!
+adrl \reg, exo_window_end
+cmp r11, \reg
+adreq r11, exo_window
+ldr \reg, [sp], #4
+.endif
 .endm
 
 parse_frame:
@@ -536,7 +567,7 @@ parse_frame:
 	adrl r7, palette_block		; r7 = &palette_block
 
 	; read palette words
-	mov r5, #0					; r1 = palette loop counter
+	mov r5, #0					; r5 = palette loop counter
 .2:
 	movs r2, r2, asl #1
 	bcc .3
@@ -685,6 +716,7 @@ parse_end_of_frame:
 	cmp r0, #POLY_DESC_SKIP_TO_64K
 	bne .1
 
+	.if 0
 	; align ptr to 64K
 	; ptr += 0xffff
 	.2:
@@ -692,6 +724,10 @@ parse_end_of_frame:
 		bic r0, r11, #0xff000000
 		bics r0, r0,  #0x00ff0000
 		bne .2
+	.else
+	adrl r11, exo_window
+	.endif
+
 .1:
 	str r11, parse_frame_ptr
 
@@ -699,8 +735,10 @@ parse_end_of_frame:
 	mov pc, lr
 
 parse_frame_ptr:
-	.long 0	;scene1_data_stream
+	.long exo_window	;0	;scene1_data_stream
 
+parse_frame_prev:
+	.long 0
 
 ; reserved r15, r14, r13
 ; preserve r7, r8, r9, r12
