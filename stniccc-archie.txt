@@ -107,3 +107,14 @@ A3000 = 6337 = +1566 frames! = 14.2 fps
 Size inc buffer = 477287 bytes = 466.1K
 Original = 639976 bytes = 625K
 Saving 162689 bytes = 158.9K
+
+TODOs:
+- Load context with LDM
+- Jump table for switch?
+- Inline read_byte - DONE
+- Inline rotate bits - DONE
+- Read decrunched data from window
+- Switch(length) as table
+
+A3020 = 3853 = 23.4 fps
+A3000 = 5939 = 15.2 fps - Doh! Need 11% more for music!
