@@ -375,8 +375,3 @@ exo_table_offsets2:
 
 exo_table_offsets1:
     .skip TABLE_ENTRY_SIZE * 4
-
-.p2align 8
-exo_window:
-    .skip WINDOW_LENGTH
-exo_window_end:

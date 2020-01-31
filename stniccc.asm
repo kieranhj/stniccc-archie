@@ -255,7 +255,7 @@ my_test_points:
 
 	bl initialise_span_buffer
 
-	adrl r1, test_poly_data
+	adrl r1, poly_buffer
 	mov r0, #5
 	mov r4, #6
 	bl plot_polygon_span
@@ -521,27 +521,28 @@ window_cls:
 
 .macro GET_BYTE reg
 .if 0
+; Read byte from uncompressed stream
 ;ldrb \reg, [r11], #1
+
+; Decompress each byte on demand
 stmfd sp!, {r1-r12}
 bl exo_read_decrunched_byte
 ldmfd sp!, {r1-r12}
 add r11, r11, #1
 mov \reg, r0
 .else
+; Read byte from decompressed window
 ldrb \reg, [r11], #1
-str \reg, [sp, #-4]!
-adrl \reg, exo_window_end
-cmp r11, \reg
-adreq r11, exo_window
-ldr \reg, [sp], #4
+cmp r11, r7
+subge r11, r11, #WINDOW_LENGTH
 .endif
 .endm
 
 parse_frame:
 	stmfd sp!, {lr}
 
-	mov r0,r0;wtaf
 	ldr r11, parse_frame_ptr
+	adrl r7, exo_window_end
 
 	; get_byte
 	GET_BYTE r10				; r10=frame_flags
@@ -552,6 +553,7 @@ parse_frame:
 	.else
 	blne window_cls
 	.endif
+	adrl r7, exo_window_end
 
 	tst r10, #FLAG_CONTAINS_PALETTE
 	beq .1						; no_palette
@@ -564,7 +566,7 @@ parse_frame:
 	orr r2, r2, r0, lsl #16		; r2 = r1 << 24 | r0 << 16
 
 	mov r6, #0					; r6 = palette_count
-	adrl r7, palette_block		; r7 = &palette_block
+	adrl r9, palette_block		; r9 = &palette_block
 
 	; read palette words
 	mov r5, #0					; r5 = palette loop counter
@@ -577,22 +579,22 @@ parse_frame:
 	; get_byte
 	GET_BYTE r4					; r4 = ggggbbbb
 
-	strb r5, [r7], #1			; logical colour
+	strb r5, [r9], #1			; logical colour
 	mov r0, #16
-	strb r0, [r7], #1			; physical colour
+	strb r0, [r9], #1			; physical colour
 
 	mov r0, r3, lsl #5
 	orr r0, r0, #0x10
-	strb r0, [r7], #1			; red component
+	strb r0, [r9], #1			; red component
 
 	and r0, r4, #0x70
 	mov r0, r0, lsl #1
 	orr r0, r0, #0x10
-	strb r0, [r7], #1			; green component
+	strb r0, [r9], #1			; green component
 
 	mov r0, r4, lsl #5
 	orr r0, r0, #0x10
-	strb r0, [r7], #1+3			; blue component
+	strb r0, [r9], #1+3			; blue component
 
 	add r6, r6, #1				; palette_count++
 
@@ -622,6 +624,9 @@ parse_frame:
 .else
 	adrl r8, vertex_buffer
 	mov r9, r1
+	; Could copy N*2 bytes directly out of buffer?
+	; Data only guaranteed to be 64K aligned so could
+	; wrap around our 8K buffer during a frame, so no!
 	.4:
 		GET_BYTE r0				; x
 		strb r0, [r8], #1
@@ -649,7 +654,7 @@ parse_frame_read_poly_data:
 	; high nibble = palette
 	mov r4, r0, lsr #4			; r4=palette
 
-	adrl r6, test_poly_data		; r6=test_poly_data array
+	adrl r6, poly_buffer		; r6=poly_buffer array
 
 	; is the data indexed?
 	tst r10, #FLAG_INDEXED_DATA
@@ -677,27 +682,26 @@ non_indexed_data:
 
 	; non-indexed
 	mov r12, r1
-.6:
-	; copy (x,y) bytes directly to temp array
-	; get_byte
-	GET_BYTE r2					; r2 = x
-	; get_byte
-	GET_BYTE r3					; r3 = y
+	.6:
+		; copy (x,y) bytes directly to temp array
+		; get_byte
+		GET_BYTE r2					; r2 = x
+		; get_byte
+		GET_BYTE r3					; r3 = y
 
-	; store into a temp array for now
-	stmia r6!, {r2, r3}			; *temp_poly_data++ = x, y
-
-	subs r12, r12, #1
-	bne .6
+		; store into a temp array for now
+		stmia r6!, {r2, r3}			; *poly_buffer++ = x, y
+		subs r12, r12, #1
+		bne .6
 
 parse_plot_poly:
 
 	; store off any registers we need here!
-	stmfd sp!, {r8-r11}
+	stmfd sp!, {r7-r11}
 
 	mov r0, r1
 	; plot the polygon!
-	adrl r1, test_poly_data
+	adrl r1, poly_buffer
 	; r4=palette
 	.if _DRAW_WIREFRAME
 	bl plot_polygon_line
@@ -706,7 +710,7 @@ parse_plot_poly:
 	.endif
 	
 	; pull any registers we need here!
-	ldmfd sp!, {r8-r11}
+	ldmfd sp!, {r7-r11}
 
 	b parse_frame_read_poly_data
 
@@ -1296,7 +1300,7 @@ span_jump_table:
 ;	.endr
 .endif
 
-test_poly_data:
+poly_buffer:
 
 	.long 32, 32
 	.long 160, 32
@@ -1337,6 +1341,11 @@ span_buffer_end:
 .p2align 8
 vertex_buffer:
 	.skip 256*2,0
+
+.p2align 8
+exo_window:
+    .skip WINDOW_LENGTH
+exo_window_end:
 
 .include "exodecrunch.asm"
 
