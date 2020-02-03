@@ -276,10 +276,8 @@ my_test_points:
 	ldr r0, parse_frame_prev
 	subs r8, r8, r0
 	addlt r8, r8, #WINDOW_LENGTH
-	.4:
-	bl exo_read_decrunched_byte
-	subs r8, r8, #1
-	bne .4
+
+	bl exo_read_decrunched_bytes
 
 	;Exit if SPACE is pressed
 	MOV r0, #OSByte_ReadKey
@@ -1351,7 +1349,7 @@ exo_window_end:
 
 .p2align 8
 scene1_data_stream:
-;.incbin "data/scene2.exo"
+;.incbin "data/scene1.bin"
 
 .if _ENABLE_MUSIC
 .p2align 8

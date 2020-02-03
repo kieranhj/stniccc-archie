@@ -52,7 +52,6 @@ ctx_window_pos:
     .long 0                 ; unsigned short int window_pos;
 ctx_bit_buffer:
     .long 0                 ; unsigned char bit_buffer;
-
 ctx_read_data:
     .long 0                 ; void *read_data;
 
@@ -215,14 +214,51 @@ get_gamma_code:
 exo_read_decrunched_byte:
 	str lr, [sp, #-4]!
 
-    ; Load the context - should be done with LDM!
-    ldr r11, ctx_bit_buffer ; r11 = ctx->bit_buffer
-    ldr r12, ctx_read_data  ; r12 = ctx->read_data
-    adr r10, exo_window     ; r10 = ctx->window
-    ldr r9, ctx_offset      ; r9 = ctx->offset
-    ldr r6, ctx_length      ; r6 = ctx->length
-    ldr r4, ctx_state       ; r4 = ctx->state
+    ; Load the context!
+    ; r12 = ctx->read_data
+    ; r11 = ctx->bit_buffer
+    ; r10 = ctx->window_pos
+    ; r9 = ctx->offset
+    ; r6 = ctx->length
+    ; r4 = ctx->state
+    adr r0, ctx_block
+    ldmia r0, {r4, r6, r9-r12}
 
+    bl exo_read_single_byte
+
+    ; Store the context
+    adr r1, ctx_block
+    stmia r1, {r4, r6, r9-r12}
+	ldr pc, [sp], #4        ; return -1
+
+; R8 = number of bytes
+exo_read_decrunched_bytes:
+
+	str lr, [sp, #-4]!
+    ; Load the context!
+    ; r12 = ctx->read_data
+    ; r11 = ctx->bit_buffer
+    ; r10 = ctx->window_pos
+    ; r9 = ctx->offset
+    ; r6 = ctx->length
+    ; r4 = ctx->state
+    adr r0, ctx_block
+    ldmia r0, {r4, r6, r9-r12}
+
+	.4:
+	bl exo_read_single_byte
+	subs r8, r8, #1
+	bne .4
+
+    ; Store the context
+    adr r0, ctx_block
+    stmia r0, {r4, r6, r9-r12}
+	ldr pc, [sp], #4        ; return -1
+
+
+exo_read_single_byte:
+
+	str lr, [sp, #-4]!
     adrl r0, exo_decrunch_state_jump
     add r0, r0, r4, lsl #2
     mov pc, r0              ; switch(ctx->state)
@@ -326,36 +362,31 @@ state_next_byte_cont:
 
 state_next_sequence_byte:
 
-    subs r6, r6, #1             ; --ctx->length
-    moveq r4, #STATE_NEXT_BYTE  ; if(--ctx->length == 0) ctx->state = STATE_NEXT_BYTE;
+    subs r6, r6, #1                 ; --ctx->length
+    moveq r4, #STATE_NEXT_BYTE      ; if(--ctx->length == 0) ctx->state = STATE_NEXT_BYTE;
 
     ; c = read_byte_from_window(ctx, ctx->offset);
-    ldr r1, ctx_window_pos
-    subs r1, r1, r9             ; read_pos = ctx->window_pos - offset;
-                                ; if(read_pos < 0)
-    addlt r1, r1, #WINDOW_LENGTH; read_pos += ctx->window_length;
+    subs r2, r10, r9                ; read_pos = ctx->window_pos - offset;
+                                    ; if(read_pos < 0)
+    addlt r2, r2, #WINDOW_LENGTH    ; read_pos += ctx->window_length;
 
-    ldrb r0, [r10, r1]          ; return ctx->window[read_pos];
+    adr r1, exo_window
+    ldrb r0, [r1, r2]               ; return ctx->window[read_pos];
     ; fall through
     
 store_byte_in_window_and_return:
 
     ; Store byte in the window
-    ldr r1, ctx_window_pos
-    strb r0, [r10, r1]      ; ctx->window[ctx->window_pos++] = (unsigned char)c;
-    add r1, r1, #1
-    cmp r1, #WINDOW_LENGTH  ; if(ctx->window_pos == ctx->window_length)
-    moveq r1, #0            ; ctx->window_pos = 0;
-    str r1, ctx_window_pos
+    adr r1, exo_window
+    strb r0, [r1, r10]          ; ctx->window[ctx->window_pos++] = (unsigned char)c;
+    add r10, r10, #1
+    cmp r10, #WINDOW_LENGTH     ; if(ctx->window_pos == ctx->window_length)
+    moveq r10, #0               ; ctx->window_pos = 0;
     ; I guess this can be read directly from the preceding window of data
+    ; Only if we're writing all of the uncompressed data out!
 
-    ; Store the context
-    str r4, ctx_state
-    str r6, ctx_length
-    str r9, ctx_offset
-    str r11, ctx_bit_buffer
-    str r12, ctx_read_data
 	ldr pc, [sp], #4        ; return r0
+
 
 exo_decrunch_state_jump:
     b state_implicit_first_literal
