@@ -48,13 +48,12 @@ ctx_length:
     .long 0                 ; unsigned short int length;
 ctx_offset:
     .long 0                 ; unsigned short int offset;
-ctx_window_pos:
-    .long 0                 ; unsigned short int window_pos;
 ctx_bit_buffer:
     .long 0                 ; unsigned char bit_buffer;
-
 ctx_read_data:
     .long 0                 ; void *read_data;
+ctx_window_pos:
+    .long 0                 ; unsigned short int window_pos;
 
 ; R11 = ctx->bit_buffer
 ; R0 = carry_in
@@ -215,14 +214,12 @@ get_gamma_code:
 exo_read_decrunched_byte:
 	str lr, [sp, #-4]!
 
-    ; Load the context - should be done with LDM!
-    ldr r11, ctx_bit_buffer ; r11 = ctx->bit_buffer
-    ldr r12, ctx_read_data  ; r12 = ctx->read_data
+    ; Load the context
     adr r10, exo_window     ; r10 = ctx->window
-    ldr r9, ctx_offset      ; r9 = ctx->offset
-    ldr r6, ctx_length      ; r6 = ctx->length
-    ldr r4, ctx_state       ; r4 = ctx->state
+    adr r1, ctx_block
+    ldmia r1, {r4, r6, r9, r11, r12}
 
+exo_read_single_byte:
     adrl r0, exo_decrunch_state_jump
     add r0, r0, r4, lsl #2
     mov pc, r0              ; switch(ctx->state)
@@ -350,12 +347,9 @@ store_byte_in_window_and_return:
     ; I guess this can be read directly from the preceding window of data
 
     ; Store the context
-    str r4, ctx_state
-    str r6, ctx_length
-    str r9, ctx_offset
-    str r11, ctx_bit_buffer
-    str r12, ctx_read_data
-	ldr pc, [sp], #4        ; return r0
+    adr r1, ctx_block
+    stmia r1, {r4, r6, r9, r11, r12}
+    ldr pc, [sp], #4        ; return r0
 
 exo_decrunch_state_jump:
     b state_implicit_first_literal

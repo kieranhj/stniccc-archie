@@ -55,11 +55,10 @@ main:
 	bl exo_decrunch_new
 
 	; fill exo window
-	mov r8, #0
+	mov r8, #WINDOW_LENGTH
 	.2:
 	bl exo_read_decrunched_byte
-	add r8, r8, #1
-	cmp r8, #WINDOW_LENGTH
+	subs r8, r8, #1
 	bne .2
 
 .if _TEST_EXO
