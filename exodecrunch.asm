@@ -161,19 +161,19 @@ exo_decrunch_new:
     str r0, ctx_bit_buffer  ; ctx->bit_buffer = read_byte(read_data);
     mov r11, r0             ; r11 = ctx->bit_buffer
 
-    adrl r6, exo_table_lengths
+    adr r6, exo_table_lengths
     mov r4, #16
     bl generate_table       ; ctx->lengths = generate_table(ctx, 16);
 
-    adrl r6, exo_table_offsets3
+    adr r6, exo_table_offsets3
     mov r4, #16
     bl generate_table       ; ctx->offsets3 = generate_table(ctx, 16);
 
-    adrl r6, exo_table_offsets2
+    adr r6, exo_table_offsets2
     mov r4, #16
     bl generate_table       ; ctx->offsets2 = generate_table(ctx, 16);
 
-    adrl r6, exo_table_offsets1
+    adr r6, exo_table_offsets1
     mov r4, #4
     bl generate_table       ; ctx->offsets1 = generate_table(ctx, 4);
     
@@ -220,7 +220,7 @@ exo_read_decrunched_byte:
     ldmia r1, {r4, r6, r9, r11, r12}
 
 exo_read_single_byte:
-    adrl r0, exo_decrunch_state_jump
+    adr r0, exo_decrunch_state_jump
     add r0, r0, r4, lsl #2
     mov pc, r0              ; switch(ctx->state)
 

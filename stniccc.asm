@@ -25,7 +25,7 @@
 .org 0x8000
 
 Start:
-    adrl sp, stack_base
+    adr sp, stack_base
 	B main
 
 .skip 1024
@@ -36,13 +36,13 @@ scr_bank:
 
 main:
 	mov r0, #16
-	adrl r1, data_filename
-	adrl r2, scene1_data_stream
+	adr r1, data_filename
+	adr r2, scene1_data_stream
 	mov r3, #0
 	swi OS_File
 	; R4=file length
 
-	adrl r12, scene1_data_stream
+	adr r12, scene1_data_stream
 .if _TEST_EXO
 	; R4=file length
 	add r10, r12, r4
@@ -56,11 +56,7 @@ main:
 
 	; fill exo window
 	mov r8, #WINDOW_LENGTH
-	.2:
 	bl exo_read_decrunched_byte
-	mov r8, r8
-	mov r8, r8	; WTAF - need to find out what's going on here!
-	bne .2
 
 .if _TEST_EXO
 	bl test_exo
@@ -102,7 +98,7 @@ main:
 .if _ENABLE_MUSIC
 	; Load module
 	mov r0, #0
-	adrl r1, module_data
+	adr r1, module_data
 	swi QTM_Load
 .endif
 
@@ -176,7 +172,7 @@ main_loop:
 	beq .2
 
 	mov r0, #12
-	adrl r1, palette_block
+	adr r1, palette_block
 .3:
 	swi OS_Word
 	add r1, r1, #8
@@ -255,7 +251,7 @@ my_test_points:
 
 	bl initialise_span_buffer
 
-	adrl r1, poly_buffer
+	adr r1, poly_buffer
 	mov r0, #5
 	mov r4, #6
 	bl plot_polygon_span
@@ -276,10 +272,7 @@ my_test_points:
 	ldr r0, parse_frame_prev
 	subs r8, r8, r0
 	addlt r8, r8, #WINDOW_LENGTH
-	.4:
 	bl exo_read_decrunched_byte
-;	subs r8, r8, #1
-;	bne .4
 
 	;Exit if SPACE is pressed
 	MOV r0, #OSByte_ReadKey
@@ -292,6 +285,9 @@ my_test_points:
 	BEQ exit
 	
 	B main_loop
+
+wtaf_pad:
+	.skip 16
 
 error_noscreenmem:
 	.long 0
@@ -365,7 +361,7 @@ test_exo:
 
 	.2:
 	mov r0, #0
-	adrl r1, save_filename
+	adr r1, save_filename
 	mov r2, #0x8000
 	mov r3, #0x8000
 	ldr r4, top_addr	; start address
@@ -382,8 +378,8 @@ save_filename:
 
 get_screen_addr:
 	str lr, [sp, #-4]!
-	adrl r0, screen_addr_input
-	adrl r1, screen_addr
+	adr r0, screen_addr_input
+	adr r1, screen_addr
 	swi OS_ReadVduVariables
 	ldr pc, [sp], #4
 	
@@ -542,7 +538,7 @@ parse_frame:
 	stmfd sp!, {lr}
 
 	ldr r11, parse_frame_ptr
-	adrl r7, exo_window_end
+	adr r7, exo_window_end
 
 	; get_byte
 	GET_BYTE r10				; r10=frame_flags
@@ -553,7 +549,7 @@ parse_frame:
 	.else
 	blne window_cls
 	.endif
-	adrl r7, exo_window_end
+	adr r7, exo_window_end
 
 	tst r10, #FLAG_CONTAINS_PALETTE
 	beq .1						; no_palette
@@ -566,7 +562,7 @@ parse_frame:
 	orr r2, r2, r0, lsl #16		; r2 = r1 << 24 | r0 << 16
 
 	mov r6, #0					; r6 = palette_count
-	adrl r9, palette_block		; r9 = &palette_block
+	adr r9, palette_block		; r9 = &palette_block
 
 	; read palette words
 	mov r5, #0					; r5 = palette loop counter
@@ -622,7 +618,7 @@ parse_frame:
 
 	add r11, r11, r1, lsl #1	; skip num_verts*2 bytes
 .else
-	adrl r8, vertex_buffer
+	adr r8, vertex_buffer
 	mov r9, r1
 	; Could copy N*2 bytes directly out of buffer?
 	; Data only guaranteed to be 64K aligned so could
@@ -635,7 +631,7 @@ parse_frame:
 		subs r9, r9, #1
 		bne .4
 
-	adrl r8, vertex_buffer
+	adr r8, vertex_buffer
 	add r9, r8, #1
 .endif
 
@@ -654,7 +650,7 @@ parse_frame_read_poly_data:
 	; high nibble = palette
 	mov r4, r0, lsr #4			; r4=palette
 
-	adrl r6, poly_buffer		; r6=poly_buffer array
+	adr r6, poly_buffer		; r6=poly_buffer array
 
 	; is the data indexed?
 	tst r10, #FLAG_INDEXED_DATA
@@ -701,7 +697,7 @@ parse_plot_poly:
 
 	mov r0, r1
 	; plot the polygon!
-	adrl r1, poly_buffer
+	adr r1, poly_buffer
 	; r4=palette
 	.if _DRAW_WIREFRAME
 	bl plot_polygon_line
@@ -729,7 +725,7 @@ parse_end_of_frame:
 		bics r0, r0,  #0x00ff0000
 		bne .2
 	.else
-	adrl r11, exo_window
+	adr r11, exo_window
 	.endif
 
 .1:
@@ -774,7 +770,7 @@ plot_span:
 	sub r3, r3, r0				; width -= number pixels plotted in start word
 
 	; find table
-	adrl r5, start_word_pixel_masks - 4
+	adr r5, start_word_pixel_masks - 4
 
 	; read mask word 0
 	ldr r11, [r5, r0, lsl #2]	; r11 = start_word_pixel_masks[pixels to plot * 4]
@@ -792,7 +788,7 @@ plot_span:
 	sub r3, r3, r5, lsl #3		; width -= words * 8
 
 .if _UNROLL_SPAN
-	adrl r11, span_jump_table - 4
+	adr r11, span_jump_table - 4
 	add r11, r11, r5, lsl #2
 	mov pc, r11
 	return_here_from_jump:
@@ -811,7 +807,7 @@ plot_span_last_word:
 	moveq pc, lr				; rts
 
 	; find table
-	adrl r5, short_pixel_1 - 64
+	adr r5, short_pixel_1 - 64
 
 	; read mask word 0
 	ldr r11, [r5, r3, lsl #6]	; r11 = start_word_pixel_masks[pixels to plot * 4]
@@ -831,8 +827,8 @@ initialise_span_buffer:
 	str r1, span_buffer_min_y
 
 	mov r2, #0
-	adrl r3, span_buffer_start
-	adrl r4, span_buffer_end
+	adr r3, span_buffer_start
+	adr r4, span_buffer_end
 .1:
 	str r1, [r3, r2, lsl #2]			; span_buffer_start[y] = 256
 	str r0, [r4, r2, lsl #2]			; span_buffer_end[y] = 0
@@ -953,8 +949,8 @@ plot_polygon_span:
 	mov r4, r1					; TODO
 
 	; Set up pointers to span buffers for line draw
-	adrl r11, span_buffer_start
-	adrl r12, span_buffer_end
+	adr r11, span_buffer_start
+	adr r12, span_buffer_end
 
 	; Store first vertex for reuse as last vertex
 	ldmia r4, {r2-r3}
@@ -1211,7 +1207,7 @@ plot_short_span:
 	and r0, r0, #7				; r0=pixel offset [0-7]
 
 	; find table
-	adrl r5, short_pixel_1 - 64
+	adr r5, short_pixel_1 - 64
 	add r5, r5, r3, lsl #6		; r5 = short_pixel_1 + width * 16 * 4
 	add r5, r5, r0, lsl #3		; r5 = short_pixel_W + pixel_offset * 8
 
@@ -1326,6 +1322,7 @@ module_filename:
 	.byte "checknobankh"
 	.byte 0
 
+.align 4
 data_filename:
 	.byte "scene1_8k/exo"
 	.byte 0
