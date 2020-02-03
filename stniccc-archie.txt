@@ -126,3 +126,10 @@ RTW suggests reordering the bitstream so lsb first - can just mask in ARM
 Sensible read out of window
 A3020 = 3710 = 24.2 fps
 A3000 = 5717 = 15.7 fps
+
+LDM/STM for Exo context:
+A3020 = 3662
+
+Inner loop for byte decompress
+A3020 = 3546 = 25.3fps
+A3000 = 5456 = 16.5fps?!

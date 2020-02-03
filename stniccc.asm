@@ -58,7 +58,8 @@ main:
 	mov r8, #WINDOW_LENGTH
 	.2:
 	bl exo_read_decrunched_byte
-	subs r8, r8, #1
+	mov r8, r8
+	mov r8, r8	; WTAF - need to find out what's going on here!
 	bne .2
 
 .if _TEST_EXO
@@ -277,8 +278,8 @@ my_test_points:
 	addlt r8, r8, #WINDOW_LENGTH
 	.4:
 	bl exo_read_decrunched_byte
-	subs r8, r8, #1
-	bne .4
+;	subs r8, r8, #1
+;	bne .4
 
 	;Exit if SPACE is pressed
 	MOV r0, #OSByte_ReadKey

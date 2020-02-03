@@ -346,6 +346,9 @@ store_byte_in_window_and_return:
     str r1, ctx_window_pos
     ; I guess this can be read directly from the preceding window of data
 
+    subs r8, r8, #1
+    bne exo_read_single_byte
+
     ; Store the context
     adr r1, ctx_block
     stmia r1, {r4, r6, r9, r11, r12}
