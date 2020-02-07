@@ -68,8 +68,8 @@ ctx_window_pos:
 
 ; R12 = ctx->read_data
 ; R0 = returned byte
-.macro EXO_READ_BYTE
-    ldrb r0, [r12], #1      ; return *read_data++;
+.macro EXO_READ_BYTE reg
+    ldrb \reg, [r12], #1      ; return *read_data++;
 .endm
 
 ; R11 = ctx->bit_buffer
@@ -86,35 +86,27 @@ read_bits:
     ands r1, r1, #7         ; bit_count &= 7;
     beq .2
 
+    bic r11, r11, #0xff00   ; clear HI byte (unsigned char bit_buffer)
+
 .1:
-    ; bl bitbuffer_rotate   ; carry_in = 0
-    mov r11, r11, lsl #1    ; bit_buffer <<= 1;
-    mov r0, r11, lsr #8     ; C = carry_out
-    ands r11, r11, #0xff    ; unsigned char
-                            ; R0 = int carry = bitbuffer_rotate(0);
-    bne .3                  ; if (bit_buffer == 0)
-
-    ldrb r11, [r12], #1     ; bit_buffer = read_byte(inp);
-
-    ; bl bitbuffer_rotate   ; carry_in = 1
-    mov r11, r11, lsl #1    ; bit_buffer <<= 1;
-    orr r11, r11, #1        ; if (carry) bit_buffer |= 0x01;
-    mov r0, r11, lsr #8     ; C = carry_out
-    and r11, r11, #0xff     ; unsigned char
-                            ; R0 = carry = bitbuffer_rotate(1);
-.3:
-    mov r2, r2, lsl #1      ; bits <<= 1;
-    orr r2, r2, r0          ; bits |= carry;
+    and r0, r11, #0x7f
+    rsbs r0, r0, #0         ; 0 - bit_buffer -> sets carry_in iff bit_buffer & 0x7f == 0
+    ldrcsb r0, [r12], #1    ; bit_buffer = read_byte(inp);
+    biccs r11, r11, #0xff   ; replace bottom byte - bit 7 can still be set :\
+    orrcs r11, r11, r0      ; replace bottom byte
+    adc r11, r11, r11       ; bit_buffer <<= 1; bit_buffer |= carry_in
 
     subs r1, r1, #1         ; while(bit_count-- > 0)
     bne .1                  
     
+    mov r2, r11, lsr #8     ; but only want N bits of HI byte
+
 .2:
     cmp r3, #0              ; if (byte_copy != 0)
     ldreq pc, [sp], #4      ; return bits;
 
     mov r2, r2, lsl #8      ; bits <<= 8;
-    EXO_READ_BYTE
+    EXO_READ_BYTE r0
     orr r2, r2, r0          ; bits |= read_byte(inp);
 	ldr pc, [sp], #4        ; return bits;
 
@@ -157,7 +149,7 @@ exo_decrunch_new:
     mov r0, #0
     str r0, ctx_window_pos  ; ctx->window_pos = 0;
 
-    EXO_READ_BYTE
+    EXO_READ_BYTE r0
     str r0, ctx_bit_buffer  ; ctx->bit_buffer = read_byte(read_data);
     mov r11, r0             ; r11 = ctx->bit_buffer
 
@@ -227,7 +219,7 @@ exo_read_single_byte:
 state_implicit_first_literal:
 
     ; literal byte
-    EXO_READ_BYTE
+    EXO_READ_BYTE r0
     mov r4, #STATE_NEXT_BYTE
     b store_byte_in_window_and_return
 
@@ -246,7 +238,7 @@ state_next_byte:
     cmp r2, #1
     bne .1
     ; literal byte
-    EXO_READ_BYTE            ; c = ctx->read_byte(ctx->read_data);
+    EXO_READ_BYTE r0            ; c = ctx->read_byte(ctx->read_data);
     b store_byte_in_window_and_return    
 
 .1:
@@ -261,9 +253,9 @@ state_next_byte:
     bne state_next_byte_cont
 
     ; literal data block
-    EXO_READ_BYTE
+    EXO_READ_BYTE r0
     mov r6, r0, lsl #8      ; ctx->length = ctx->read_byte(ctx->read_data) << 8;
-    EXO_READ_BYTE
+    EXO_READ_BYTE r0
     orr r6, r6, r0          ; ctx->length |= ctx->read_byte(ctx->read_data);
     mov r4, #STATE_NEXT_LITERAL_BYTE    ; ctx->state = STATE_NEXT_LITERAL_BYTE;
     ; fall through!
@@ -273,7 +265,7 @@ state_next_literal_byte:
     subs r6, r6, #1                 ; if(--ctx->length == 0)
     moveq r4, #STATE_NEXT_BYTE      ; ctx->state = STATE_NEXT_BYTE;
 
-    EXO_READ_BYTE
+    EXO_READ_BYTE r0
     b store_byte_in_window_and_return
 
 state_next_byte_cont:

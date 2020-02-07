@@ -133,3 +133,48 @@ A3020 = 3662
 Inner loop for byte decompress
 A3020 = 3546 = 25.3fps
 A3000 = 5456 = 16.5fps?!
+
+A3000 w/ music = 6726 = 13.4 fps :(
+A3000 w/ music @ 48us = 6216 = 14.5 fps = 13.9% slower w/ music wtf?
+A3020 w/ music @ 48us = 3823 = 23.5 fps = 7.8% slower w/ music
+
+read_bits(bit_count)
+
+shifts by N = bit_count & 7 places (1 <= N <= 7)
+returns (bit_buffer << N) & 0x7f00 >> N
+Optional byte copy
+
+bit_buffer = abcdefgh
+next_byte =  stuvwxyz
+
+iteration 1: 0000000a bcdefgh0 -> 0000000s tuvwxyz1 
+iteration 2: 000000ab cdefgh00 -> 000000as tuvwxyz1
+iteration 3: 00000abc defgh000 -> 00000abs tuvwxyz1
+iteration 4: 0000abcd efgh0000 -> 0000abcs tuvwxyz1
+iteration 5: 000abcde fgh00000
+iteration 6: 00abcdef gh000000
+iteration 7: 0abcdefg h0000000
+
+Return HI byte after N shifts
+
+However!
+If at any point the LO byte == 0 then
+refill the low byte from the stream and do the shift again,
+this time moving a 1 into the lowest bit
+
+Rotate Left w/ Carry is ADCS r0,r0,r0
+
+    while(bit_count-- > 0)
+    {
+        int carry = 0;
+        if(ctx->bit_buffer & 0x7f == 0)
+        {
+            ctx->bit_buffer = ctx->read_byte(ctx->read_data);
+            carry = 1;
+        }
+        bits <<= 1;
+        bits |= bitbuffer_rotate(ctx, carry);
+    }
+
+bit_buffer + 0xffffffff will set carry for everything except 0
+0 - bit_buffer

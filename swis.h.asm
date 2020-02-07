@@ -46,3 +46,4 @@
 .equ QTM_Load, 0x47E40
 .equ QTM_Start, 0x47E41
 .equ QTM_Stop, 0x47E42
+.equ QTM_SetSampleSpeed, 0x47E49

@@ -96,6 +96,9 @@ main:
 	SWI OS_WriteC
 
 .if _ENABLE_MUSIC
+	mov r0, #48
+	swi QTM_SetSampleSpeed
+
 	; Load module
 	mov r0, #0
 	adr r1, module_data
@@ -132,7 +135,7 @@ main:
 	mov r0, #EventV
 	adr r1, event_handler
 	mov r2, #0
-	swi OS_Claim
+	swi OS_AddToVector
 
 	bl initialise_span_buffer
 
@@ -156,6 +159,7 @@ main_loop:
 	cmp r1, r2
 	beq .1
 	str r2, last_vsync
+
 
 	; Swap banks
 	; Display whichever bank we've just written to
@@ -389,6 +393,11 @@ screen_addr:
 	.long 0
 
 exit:	
+.if _ENABLE_MUSIC
+	mov r0, #0
+	swi QTM_Stop
+.endif
+
 	; Display whichever bank we've just written to
 	ldr r1, scr_bank
 	mov r0, #OSByte_WriteDisplayBank
@@ -426,6 +435,7 @@ event_handler:
 	ADD r0, r0, #1
 	STR r0, vsync_count
 
+.if 1
 	; is there a new screen buffer ready to display?
 	LDR r1, buffer_pending
 	CMP r1, #0
@@ -448,6 +458,8 @@ event_handler:
 	TEQP r9, #0    ;Restore old mode
 	MOV r0, r0
 	LDMIA sp!, {r2-r12}
+.endif
+
 	LDMIA sp!, {r0-r1, pc}
 
 vsync_count:
@@ -1346,12 +1358,12 @@ exo_window_end:
 
 .include "exodecrunch.asm"
 
-.p2align 8
-scene1_data_stream:
-;.incbin "data/scene2.exo"
-
 .if _ENABLE_MUSIC
 .p2align 8
 module_data:
 .incbin "data/checknobankh.mod"
 .endif
+
+.p2align 8
+scene1_data_stream:
+;.incbin "data/scene2.exo"
