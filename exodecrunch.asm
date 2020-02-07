@@ -91,6 +91,7 @@ read_bits:
 .1:
     and r0, r11, #0x7f
     rsbs r0, r0, #0         ; 0 - bit_buffer -> sets carry_in iff bit_buffer & 0x7f == 0
+    ; EXO_READ_BYTE r0
     ldrcsb r0, [r12], #1    ; bit_buffer = read_byte(inp);
     biccs r11, r11, #0xff   ; replace bottom byte - bit 7 can still be set :\
     orrcs r11, r11, r0      ; replace bottom byte
@@ -110,6 +111,20 @@ read_bits:
     orr r2, r2, r0          ; bits |= read_byte(inp);
 	ldr pc, [sp], #4        ; return bits;
 
+; Inline version of above when we know the bit_count at assemble time.
+.macro READ_BITS_NO_COPY bit_count
+    bic r11, r11, #0xff00   ; clear HI byte (unsigned char bit_buffer)
+.rept \bit_count
+    and r0, r11, #0x7f
+    rsbs r0, r0, #0         ; 0 - bit_buffer -> sets carry_in iff bit_buffer & 0x7f == 0
+    ldrcsb r0, [r12], #1    ; bit_buffer = read_byte(inp);
+    biccs r11, r11, #0xff   ; replace bottom byte - bit 7 can still be set :\
+    orrcs r11, r11, r0      ; replace bottom byte
+    adc r11, r11, r11       ; bit_buffer <<= 1; bit_buffer |= carry_in
+.endr
+    mov r2, r11, lsr #8     ; but only want N bits of HI byte
+.endm
+
 ; R11 = ctx->bit_buffer
 ; R12 = ctx->read_data
 ; R4 = size
@@ -122,11 +137,10 @@ generate_table:
     mov r7, #1              ; int base = 1;
 .1:                         ; for(i = 0; i < size; ++i)
     str r7, [r6], #4        ; table[i].base = base; *table++ = base;
-    mov r1, #3
-    bl read_bits
+    READ_BITS_NO_COPY 3
+
     mov r8, r2              ; r8 = (unsigned char)read_bits(ctx, 3);
-    mov r1, #1
-    bl read_bits
+    READ_BITS_NO_COPY 1
     orr r8, r8, r2, lsl #3  ; r8 |= (unsigned char)read_bits(ctx, 1) << 3;
     str r8, [r6], #4        ; table[i].bits = r8
 
@@ -184,8 +198,7 @@ get_gamma_code:
 
     mov r5, #0              ; r5 = int gamma = 0;
 .1:
-    mov r1, #1
-    bl read_bits
+    READ_BITS_NO_COPY 1
     cmp r2, #0
     bne .2                  ; while(read_bits(ctx, 1) == 0)
     add r5, r5, #1          ;  ++gamma;
@@ -232,8 +245,7 @@ state_eof_default:
 
 state_next_byte:
 
-    mov r1, #1
-    bl read_bits            ; if(read_bits(ctx, 1) == 1)
+    READ_BITS_NO_COPY 1
 
     cmp r2, #1
     bne .1
@@ -284,7 +296,7 @@ state_next_byte_cont:
     bne .2
     ; case 1:
     adr r7, exo_table_offsets1  ; table_entry = ctx->offsets1 + read_bits(ctx, 2);
-    mov r1, #2
+    READ_BITS_NO_COPY 2
     b .4
 
 .2:
@@ -292,16 +304,16 @@ state_next_byte_cont:
     cmp r6, #2
     bne .3
     adr r7, exo_table_offsets2  ; table_entry = ctx->offsets2 + read_bits(ctx, 4);
-    mov r1, #4
+    READ_BITS_NO_COPY 4
     b .4
 
 .3:
     ; default:
     adr r7, exo_table_offsets3  ; table_entry = ctx->offsets2 + read_bits(ctx, 4);
-    mov r1, #4
+    READ_BITS_NO_COPY 4
     ; drop through
+
 .4:
-    bl read_bits
     add r7, r7, r2, lsl #3      ; table_entry += read_bits(ctx, n)
 
     ldr r1, [r7, #4]            ; table_entry->bits

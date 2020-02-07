@@ -178,3 +178,7 @@ Rotate Left w/ Carry is ADCS r0,r0,r0
 
 bit_buffer + 0xffffffff will set carry for everything except 0
 0 - bit_buffer
+
+Inline read_bits for static bit_count:
+A3020 w.out music = 3431 = 26.2 fps
+A3000 w.out music = 5207 = 17.3 fps
