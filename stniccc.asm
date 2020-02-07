@@ -6,7 +6,7 @@
 .equ _TEST_EXO, 0
 .equ _UNROLL_SPAN, 1
 .equ _DRAW_WIREFRAME, 0
-.equ _ENABLE_MUSIC, 0
+.equ _ENABLE_MUSIC, 1
 .equ _DEBUG, 1
 
 .equ Screen_Banks, 3
@@ -96,13 +96,13 @@ main:
 	SWI OS_WriteC
 
 .if _ENABLE_MUSIC
-	mov r0, #48
-	swi QTM_SetSampleSpeed
-
 	; Load module
 	mov r0, #0
 	adr r1, module_data
 	swi QTM_Load
+
+	mov r0, #48
+	swi QTM_SetSampleSpeed
 .endif
 
 	; Clear all screen buffers
@@ -291,12 +291,12 @@ my_test_points:
 	B main_loop
 
 wtaf_pad:
-	.skip 16
+	.skip 32
 
 error_noscreenmem:
 	.long 0
 	.byte "Cannot allocate screen memory!"
-	.align 4
+	.p2align 2
 	.long 0
 
 .if _DEBUG
@@ -377,7 +377,7 @@ test_exo:
 save_filename:
 	.byte "test/bin"
 	.byte 0
-	.align 4
+	.p2align 2
 .endif
 
 get_screen_addr:
@@ -1243,6 +1243,36 @@ plot_short_span:
 
 	mov pc, lr
 
+poly_buffer:
+	.long 32, 32
+	.long 160, 32
+	.long 160, 101
+	.long 32, 111
+	.long 0, 64
+	.long 0, 0
+	.long 0, 0
+	.long 0, 0
+
+palette_count:
+	.long 0
+
+palette_block:
+	.skip 8*16
+
+span_buffer_min_y:
+	.long 0
+span_buffer_max_y:
+	.long 0
+
+module_filename:
+	.byte "checknobankh"
+	.byte 0
+
+.p2align 2
+data_filename:
+	.byte "scene1_8k/exo"
+	.byte 0
+
 ; colour stored in r1, r2, r4, r6
 .macro plot_span_X num_pixels
 
@@ -1272,15 +1302,19 @@ plot_span_\num_pixels:
 .if _UNROLL_SPAN
 
 .irp my_width, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+.p2align 4
 plot_span_X \my_width
 .endr
 .irp my_width, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20
+.p2align 4
 plot_span_X \my_width
 .endr
 .irp my_width, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30
+.p2align 4
 plot_span_X \my_width
 .endr
 .irp my_width, 31, 32
+.p2align 4
 plot_span_X \my_width
 .endr
 
@@ -1307,37 +1341,6 @@ span_jump_table:
 ;	b plot_span_\my_width
 ;	.endr
 .endif
-
-poly_buffer:
-
-	.long 32, 32
-	.long 160, 32
-	.long 160, 101
-	.long 32, 111
-	.long 0, 64
-	.long 0, 0
-	.long 0, 0
-	.long 0, 0
-
-palette_count:
-	.long 0
-
-palette_block:
-	.skip 8*16
-
-span_buffer_min_y:
-	.long 0
-span_buffer_max_y:
-	.long 0
-
-module_filename:
-	.byte "checknobankh"
-	.byte 0
-
-.align 4
-data_filename:
-	.byte "scene1_8k/exo"
-	.byte 0
 
 .p2align 8
 span_buffer_start:

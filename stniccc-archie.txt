@@ -163,22 +163,21 @@ refill the low byte from the stream and do the shift again,
 this time moving a 1 into the lowest bit
 
 Rotate Left w/ Carry is ADCS r0,r0,r0
-
-    while(bit_count-- > 0)
-    {
-        int carry = 0;
-        if(ctx->bit_buffer & 0x7f == 0)
-        {
-            ctx->bit_buffer = ctx->read_byte(ctx->read_data);
-            carry = 1;
-        }
-        bits <<= 1;
-        bits |= bitbuffer_rotate(ctx, carry);
-    }
-
 bit_buffer + 0xffffffff will set carry for everything except 0
-0 - bit_buffer
+0 - bit_buffer will set carry for only 0
 
 Inline read_bits for static bit_count:
-A3020 w.out music = 3431 = 26.2 fps
-A3000 w.out music = 5207 = 17.3 fps
+A3020 w.out music = 3431 = 26.2 fps (+53%)
+A3000 w.out music = 5251 = 17.1 fps
+Sarah says A3020 should be 54.4% faster than A3000!
+
+A3000 w/ music = 6057 = 14.86 fps... 15% overhead for music wtf!?
+A3020 w/ music = 3728 = 24.1 fps... 8.7% overhead
+
+A3000 w/ music but no RMCLEAR = 5968 = 15.08 fps ?!
+Makes no sense. Need to try real hw. Now can't repro. Red herring?
+Interrupts maybe?
+
+Tweaked alignment of unrolled loops
+A3000 w/ music = 6009 = 14.98 fps
+A3020 w/ music = 3652 = 24.6 fps ~64% faster?!

@@ -122,7 +122,7 @@ read_bits:
     orrcs r11, r11, r0      ; replace bottom byte
     adc r11, r11, r11       ; bit_buffer <<= 1; bit_buffer |= carry_in
 .endr
-    mov r2, r11, lsr #8     ; but only want N bits of HI byte
+    movs r2, r11, lsr #8     ; but only want N bits of HI byte
 .endm
 
 ; R11 = ctx->bit_buffer
@@ -193,19 +193,17 @@ exo_decrunch_new:
 ; R4 = ctx->state
 ; R5 = gamma
 ; Uses R0, R1, R2, R3
-get_gamma_code:
-	str lr, [sp, #-4]!
-
-    mov r5, #0              ; r5 = int gamma = 0;
-.1:
-    READ_BITS_NO_COPY 1
-    cmp r2, #0
-    bne .2                  ; while(read_bits(ctx, 1) == 0)
-    add r5, r5, #1          ;  ++gamma;
-    b .1
-
-.2:
-	ldr pc, [sp], #4        ; return gamma
+;get_gamma_code:
+;	str lr, [sp, #-4]!
+;    mov r5, #0              ; r5 = int gamma = 0;
+;.1:
+;    READ_BITS_NO_COPY 1
+;    cmp r2, #0
+;    bne .2                  ; while(read_bits(ctx, 1) == 0)
+;    add r5, r5, #1          ;  ++gamma;
+;    b .1
+;.2:
+;	ldr pc, [sp], #4        ; return gamma
 
 ; R12 = ctx->read_data
 ; R11 = ctx->bit_buffer
@@ -255,7 +253,14 @@ state_next_byte:
 
 .1:
     ; sequence
-    bl get_gamma_code       ; length_index = get_gamma_code(ctx);
+    ;bl get_gamma_code          ; length_index = get_gamma_code(ctx);
+    mov r5, #0                  ; r5 = int gamma = 0;
+    .3:
+        READ_BITS_NO_COPY 1
+        bne .2                  ; while(read_bits(ctx, 1) == 0)
+        add r5, r5, #1          ; ++gamma;
+        b .3
+    .2:
 
     ; end of data marker, we're done
     cmp r5, #16
