@@ -88,11 +88,18 @@ read_bits:
 
     bic r11, r11, #0xff00   ; clear HI byte (unsigned char bit_buffer)
 
-    adr r0, read_bits_jump_table
-    add r0, r0, r1, lsl #2
+    add r0, pc, r1, lsl #2  ; PC should point to first branch in table
     mov pc, r0
 
-read_bits_7:
+    b read_bits_7 + 7*24    ; bit_count = 0
+    b read_bits_7 + 6*24    ; bit_count = 1
+    b read_bits_7 + 5*24    ; bit_count = 2
+    b read_bits_7 + 4*24    ; bit_count = 3
+    b read_bits_7 + 3*24    ; bit_count = 4
+    b read_bits_7 + 2*24    ; bit_count = 5
+    b read_bits_7 + 1*24    ; bit_count = 6
+
+read_bits_7:                ; bit_count = 7
     .rept 7
     and r0, r11, #0x7f
     rsbs r0, r0, #0         ; 0 - bit_buffer -> sets carry_in iff bit_buffer & 0x7f == 0
@@ -115,14 +122,6 @@ read_bits_0:
 	ldr pc, [sp], #4        ; return bits;
 
 read_bits_jump_table:
-    b read_bits_7 + 7*24
-    b read_bits_7 + 6*24
-    b read_bits_7 + 5*24
-    b read_bits_7 + 4*24
-    b read_bits_7 + 3*24
-    b read_bits_7 + 2*24
-    b read_bits_7 + 1*24
-    b read_bits_7
 
 ; Inline version of above when we know the bit_count at assemble time.
 .macro READ_BITS_NO_COPY bit_count
