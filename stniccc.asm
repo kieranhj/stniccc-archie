@@ -160,7 +160,6 @@ main_loop:
 	beq .1
 	str r2, last_vsync
 
-
 	; Swap banks
 	; Display whichever bank we've just written to
 	ldr r1, scr_bank			; bank we want to display next
@@ -291,7 +290,7 @@ my_test_points:
 	B main_loop
 
 wtaf_pad:
-	.skip 32
+	.skip 24
 
 error_noscreenmem:
 	.long 0
@@ -311,6 +310,18 @@ debug_write_vsync_count:
 
 	adr r0, debug_string
 	swi OS_WriteO
+
+	mov r0, #32
+	swi OS_WriteC
+
+	ldr r0, parse_frame_no
+	adr r1, debug_string
+	mov r2, #8
+	swi OS_ConvertHex4
+
+	adr r0, debug_string
+	swi OS_WriteO
+
 	mov pc, r14
 
 debug_write_r0:
@@ -393,15 +404,15 @@ screen_addr:
 	.long 0
 
 exit:	
+	; wait for vsync (any pending buffers)
+	mov r0, #19
+	swi OS_Byte
+
 .if _ENABLE_MUSIC
+	; disable music
 	mov r0, #0
 	swi QTM_Stop
 .endif
-
-	; Display whichever bank we've just written to
-	ldr r1, scr_bank
-	mov r0, #OSByte_WriteDisplayBank
-	swi OS_Byte
 
 	; disable vsync event
 	mov r0, #OSByte_EventDisable
@@ -417,6 +428,15 @@ exit:
 	; release our error handler
 	mov r0, #ErrorV
 	adr r1, error_handler
+
+	; Display whichever bank we've just written to
+	mov r0, #OSByte_WriteDisplayBank
+	ldr r1, scr_bank
+	swi OS_Byte
+	; and write to it
+	mov r0, #OSByte_WriteVDUBank
+	ldr r1, scr_bank
+	swi OS_Byte
 
 	; Show our final frame count
 	bl debug_write_vsync_count
@@ -548,6 +568,10 @@ subge r11, r11, #WINDOW_LENGTH
 
 parse_frame:
 	stmfd sp!, {lr}
+
+	ldr r11, parse_frame_no
+	add r11, r11, #1
+	str r11, parse_frame_no
 
 	ldr r11, parse_frame_ptr
 	adr r7, exo_window_end
@@ -750,6 +774,9 @@ parse_frame_ptr:
 	.long exo_window	;0	;scene1_data_stream
 
 parse_frame_prev:
+	.long 0
+
+parse_frame_no:
 	.long 0
 
 ; reserved r15, r14, r13

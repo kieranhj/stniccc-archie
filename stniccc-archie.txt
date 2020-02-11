@@ -174,10 +174,48 @@ Sarah says A3020 should be 54.4% faster than A3000!
 A3000 w/ music = 6057 = 14.86 fps... 15% overhead for music wtf!?
 A3020 w/ music = 3728 = 24.1 fps... 8.7% overhead
 
-A3000 w/ music but no RMCLEAR = 5968 = 15.08 fps ?!
-Makes no sense. Need to try real hw. Now can't repro. Red herring?
-Interrupts maybe?
-
 Tweaked alignment of unrolled loops
 A3000 w/ music = 6009 = 14.98 fps
 A3020 w/ music = 3652 = 24.6 fps ~64% faster?!
+
+Pondered how exit terminates - might be missing last vsync count on occasion?
+Arculator A3020 w/out music = D80, D7F, D7F, D7F, D80 = 3455/6 +15
+Real hw A3020 w/out music = D8E, D8E, D8E, D8E, D8E = 3470 = 25.94fps
+Arculator A3000 w/out music = 14BD, 14BD, 14BD, 14BD, 14BD = 5309 +15
+Real hw A3000 w/out music = 14CC, 14CC, 14CC, 14D2, 14CD, 14CD = 5324 = 16.9fps
+A3020 is 53.4% faster than A3000 on real hw
+
+Arculator A3020 w/music = E8B, E8B, E8B, E8B, E8B = 3723
+Real hw A3020 w/music = E9D, E9D, E9E, E8C, E8D, E8D = 3725
+Arculator A3000 w/music = 1747, 179E, 179F, 179F, 
+Real hw A3000 w/music = 17AA, 17AA, 17AA, 17BB, 17B5, 17B4, 17B6, 17B5, 17BA = 6069?
+Music overhead is 7.8% on A3020 real hw <- not sure how I calculated that 3725/3470 = 1.0735?
+Music overhead is 14% on A3000 real hw
+With music A3020 is 61.9% faster than A3000 on real hw?
+
+Steve says: "So the actual number of instructions QTM is using to play the track will be identical on the ARM2 vs ARM250"
+A3020
+3470 / 1800 ~= 1.93 vsyncs per frame. 3725 / 1800 ~= 2.07 vsyncs per frame.
+3725 vs = 74.5s = 7450 calls to the music player
+
+A3000
+5324 / 1800 ~= 2.96 vsyncs per frame. 6069 / 1800 ~= 3.37 vsyncs per frame.
+Is it higher because we've just played more music because the sequence lasted longer?!
+6069 vs = 121.38s = 12138 calls to the music player!
+
+We know A3000 runs ~65.2% of A3020. Expect per vsync overhead closer to 12%
+Without music mostly 3 vsyncs with some 2's. With music mostly 3 vsyncs with some 4's.
+
+Music overhead is 7.35% on A3020 but will be more like 11.27% on A3000.
+However every frame takes 11.27% longer so there will be more frames, and each of those
+will be 11.27% longer, etc. Sigma n=1 to infinity of x^n for 0<=x<=1 = 1 / (1 - x)
+So x = 0.1127 = 1.127 => 12.7% longer in total.
+Using x = 0.12 (12%) => 13.6% longer in total.
+
+Another way. 7.35% of a vsync = 1.47ms
+If A3000 is 65.2% the speed of A3020 then we'll need more like 2.25ms per vsync = 11.27% frame
+Because each frame is now longer we converge on 1/(1-0.1127) = 1.127x
+Real hw w/out music = 5324 * 1.127 = 6000 vsyncs which is much closer
+
+Measured this way A3020 observed music overhead = 1 - 3470/3725 ~= 6.85%
+Observed on A3000 = 1 - 5309 / 6069 ~= 12.5%
