@@ -88,9 +88,26 @@ read_bits:
 
     bic r11, r11, #0xff00   ; clear HI byte (unsigned char bit_buffer)
 
+.if 0                       ; can't work out which one is better
     adr r0, read_bits_jump_table
     add r0, r0, r1, lsl #2
     mov pc, r0
+
+read_bits_jump_table:
+    b read_bits_7 + 7*24
+    b read_bits_7 + 6*24
+    b read_bits_7 + 5*24
+    b read_bits_7 + 4*24
+    b read_bits_7 + 3*24
+    b read_bits_7 + 2*24
+    b read_bits_7 + 1*24
+.else                       ; probably need to test on real hw...
+    adr r0, read_bits_7
+    rsb r1, r1, #7
+    add r0, r0, r1, lsl #4
+    add r0, r0, r1, lsl #3
+    mov pc, r0
+.endif
 
 read_bits_7:
     .rept 7
@@ -113,16 +130,6 @@ read_bits_0:
     EXO_READ_BYTE r0
     orr r2, r2, r0          ; bits |= read_byte(inp);
 	ldr pc, [sp], #4        ; return bits;
-
-read_bits_jump_table:
-    b read_bits_7 + 7*24
-    b read_bits_7 + 6*24
-    b read_bits_7 + 5*24
-    b read_bits_7 + 4*24
-    b read_bits_7 + 3*24
-    b read_bits_7 + 2*24
-    b read_bits_7 + 1*24
-    b read_bits_7
 
 ; Inline version of above when we know the bit_count at assemble time.
 .macro READ_BITS_NO_COPY bit_count

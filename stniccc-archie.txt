@@ -232,4 +232,5 @@ TO DO TO FINISH
 
 Unroll read_bits inner loop
 Arculator A3020 w/ music = E6F
-Arculator A3000 w/ music = 171D = 15.2fps :)
+Arculator A3000 w/ music = 171D = 15.2fps :) Gah can't repro these FFS!
+Now can't get A3000 any better than 1774 = 14.99fps
