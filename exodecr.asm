@@ -1,5 +1,7 @@
 ; exodecr.c
 ; Ported to ARM
+; BUSTED! THIS CODE DOESN'T ACTUALLY WORK
+; SEE EXDECRUNCH.ASM INSTEAD
 
 .org 0x8000
 

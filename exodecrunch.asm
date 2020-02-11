@@ -84,11 +84,16 @@ read_bits:
     and r3, r1, #8          ; R3 = int byte_copy = bit_count & 8;
 
     ands r1, r1, #7         ; bit_count &= 7;
-    beq .2
+    beq read_bits_0
 
     bic r11, r11, #0xff00   ; clear HI byte (unsigned char bit_buffer)
 
-.1:
+    adr r0, read_bits_jump_table
+    add r0, r0, r1, lsl #2
+    mov pc, r0
+
+read_bits_7:
+    .rept 7
     and r0, r11, #0x7f
     rsbs r0, r0, #0         ; 0 - bit_buffer -> sets carry_in iff bit_buffer & 0x7f == 0
     ; EXO_READ_BYTE r0
@@ -96,13 +101,11 @@ read_bits:
     biccs r11, r11, #0xff   ; replace bottom byte - bit 7 can still be set :\
     orrcs r11, r11, r0      ; replace bottom byte
     adc r11, r11, r11       ; bit_buffer <<= 1; bit_buffer |= carry_in
+    .endr
 
-    subs r1, r1, #1         ; while(bit_count-- > 0)
-    bne .1                  
-    
     mov r2, r11, lsr #8     ; but only want N bits of HI byte
 
-.2:
+read_bits_0:
     cmp r3, #0              ; if (byte_copy != 0)
     ldreq pc, [sp], #4      ; return bits;
 
@@ -110,6 +113,16 @@ read_bits:
     EXO_READ_BYTE r0
     orr r2, r2, r0          ; bits |= read_byte(inp);
 	ldr pc, [sp], #4        ; return bits;
+
+read_bits_jump_table:
+    b read_bits_7 + 7*24
+    b read_bits_7 + 6*24
+    b read_bits_7 + 5*24
+    b read_bits_7 + 4*24
+    b read_bits_7 + 3*24
+    b read_bits_7 + 2*24
+    b read_bits_7 + 1*24
+    b read_bits_7
 
 ; Inline version of above when we know the bit_count at assemble time.
 .macro READ_BITS_NO_COPY bit_count
