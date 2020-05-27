@@ -280,9 +280,8 @@ screen_addr:
 	.long 0
 
 exit:	
-	; Display whichever bank we've just written to
-	ldr r1, scr_bank
-	mov r0, #OSByte_WriteDisplayBank
+	; wait for vsync (any pending buffers)
+	mov r0, #19
 	swi OS_Byte
 
 	; disable vsync event
@@ -299,6 +298,15 @@ exit:
 	; release our error handler
 	mov r0, #ErrorV
 	adr r1, error_handler
+
+	; Display whichever bank we've just written to
+	mov r0, #OSByte_WriteDisplayBank
+	ldr r1, scr_bank
+	swi OS_Byte
+	; and write to it
+	mov r0, #OSByte_WriteVDUBank
+	ldr r1, scr_bank
+	swi OS_Byte
 
 	; Show our final frame count
 	bl debug_write_vsync_count
