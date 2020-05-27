@@ -176,65 +176,23 @@ main_loop:
 	bl get_screen_addr
 
 	;Do stuff here!
+	ldr r0, frame_number
+	adr r1, scene1_data_stream
+	adr r2, scene1_data_index
+	ldr r3, [r2, r0, lsl #2]		; offset for this frame number
+	add r11, r3, r1					; pointer to data for frame
 
-.if _TESTS
-	ldr r12, screen_addr			; R12=generic screen_addr ptr
-	add r9, r12, #Screen_Bytes
-
-	mov r2, #0
-	mov r8, #121
-	mov r7, #319
-	mov r4, #0x11
-	orr r4, r4, r4, lsl #8
-	orr r4, r4, r4, lsl #16
-
-	mov r1, r4
-	mov r2, r4
-	mov r6, r4
-
-my_test_loop:
-
-	cmp r8, r7
-	movle r0, r8
-	movle r3, r7
-	movgt r0, r7
-	movgt r3, r8
-
-	; preserve r7, r8, r9, r12
-	bl plot_span
-
-;	add r6, r6, #1
-	sub r7, r7, #1
-
-	add r12, r12, #160
-	cmp r12, r9
-	bne my_test_loop
-
-	ldr r12, screen_addr			; R12=generic screen_addr ptr
-
-	mov r0, #0
-	mov r1, #128
-my_test_points:
-	mov r4, #2
-	bl plot_pixel
-	add r0, r0, #3
-	eor r1, r1, #1
-	cmp r0, #320
-	blt my_test_points
-
-	bl initialise_span_buffer
-
-	adrl r1, test_poly_data
-	mov r0, #5
-	mov r4, #6
-	bl plot_polygon_span
-
-	b exit
-.endif
-
+	;ldr r11, parse_frame_ptr
 	bl parse_frame
-	cmp r0, #POLY_DESC_END_OF_STREAM
-	beq exit
+	;str r11, parse_frame_ptr
+
+	ldr r11, frame_number
+	sub r11, r11, #1
+	bmi exit
+	str r11, frame_number
+
+	;cmp r0, #POLY_DESC_END_OF_STREAM
+	;beq exit
 
 	;Exit if SPACE is pressed
 	MOV r0, #OSByte_ReadKey
@@ -423,11 +381,10 @@ window_cls:
 .equ POLY_DESC_SKIP_TO_64K, 0xfe
 .equ POLY_DESC_END_OF_FRAME, 0xff
 
+; R11=ptr to frame
 ; R12=screen_addr
 parse_frame:
 	stmfd sp!, {lr}
-
-	ldr r11, parse_frame_ptr
 
 	; get_byte
 	ldrb r10, [r11], #1			; r10=frame_flags
@@ -602,7 +559,6 @@ parse_end_of_frame:
 	; add base back to ptr
 	add r11, r11, r1
 .1:
-	str r11, parse_frame_ptr
 
 	ldmfd sp!, {lr}
 	mov pc, lr
@@ -610,6 +566,8 @@ parse_end_of_frame:
 parse_frame_ptr:
 	.long scene1_data_stream
 
+frame_number:
+	.long 1799
 
 ; reserved r15, r14, r13
 ; preserve r7, r8, r9, r12
@@ -1196,6 +1154,9 @@ span_buffer_start:
 .p2align 8
 span_buffer_end:
 	.skip 1024,0 
+
+scene1_data_index:
+.incbin "data/index.bin"
 
 scene1_data_stream:
 .incbin "data/scene1.bin"
