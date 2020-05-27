@@ -6,6 +6,8 @@
 .equ _UNROLL_SPAN, 1
 .equ _DRAW_WIREFRAME, 0
 .equ _ENABLE_MUSIC, 1
+.equ _ALWAYS_CLS, 1
+.equ _INDEX_PALETTE, 1
 
 .equ Screen_Banks, 3
 .equ Screen_Mode, 9
@@ -139,6 +141,8 @@ main_loop:
 	;	mov r0, #OSByte_WriteDisplayBank
 	;	swi OS_Byte
 
+	.if _INDEX_PALETTE
+	.else
 	; Set the palette from the previous frame if there is one
 	ldr r9, palette_count
 	cmp r9, #0
@@ -154,6 +158,7 @@ main_loop:
 
 	str r9, palette_count
 .2:
+	.endif
 
 	; Increment to next bank for writing
 	ldr r1, scr_bank
@@ -175,11 +180,17 @@ main_loop:
 	; Back buffer address for writing bank stored at screen_addr
 	bl get_screen_addr
 
-	;Do stuff here!
+	; Do stuff here!
 	ldr r0, frame_number
-	adr r1, scene1_data_stream
-	adr r2, scene1_data_index
+
+	adrl r4, scene1_colours_index
+	ldrb r5, [r4, r0]				; colour index for this frame
+	strb r5, palette_count
+
+	adrl r2, scene1_data_index
 	ldr r3, [r2, r0, lsl #2]		; offset for this frame number
+
+	adrl r1, scene1_data_stream
 	add r11, r3, r1					; pointer to data for frame
 
 	;ldr r11, parse_frame_ptr
@@ -187,9 +198,24 @@ main_loop:
 	;str r11, parse_frame_ptr
 
 	ldr r11, frame_number
-	sub r11, r11, #1
+	subs r11, r11, #1
 	bmi exit
 	str r11, frame_number
+
+	.if _INDEX_PALETTE
+	; Palette for frame should be set in event handler.
+	ldr r9, palette_count
+	adrl r11, scene1_colours_array
+	add r1, r11, r9, lsl #7			; each block is 16 * 8 bytes = 128
+
+	mov r0, #12						; OS_Word 12 = redefine palette
+	mov r9, #16						; do all 16 colours
+.3:
+	swi OS_Word
+	add r1, r1, #8
+	subs r9, r9, #1
+	bne .3
+	.endif
 
 	;cmp r0, #POLY_DESC_END_OF_STREAM
 	;beq exit
@@ -390,7 +416,7 @@ parse_frame:
 	ldrb r10, [r11], #1			; r10=frame_flags
 
 	tst r10, #FLAG_CLEAR_SCREEN
-	.if _DRAW_WIREFRAME
+	.if _DRAW_WIREFRAME | _ALWAYS_CLS
 	bl window_cls
 	.else
 	blne window_cls
@@ -406,8 +432,11 @@ parse_frame:
 	mov r2, r1, lsl #24
 	orr r2, r2, r0, lsl #16		; r2 = r1 << 24 | r0 << 16
 
+	.if _INDEX_PALETTE
+	.else
 	mov r6, #0					; r6 = palette_count
 	adrl r7, palette_block		; r7 = &palette_block
+	.endif
 
 	; read palette words
 	mov r5, #0					; r1 = palette loop counter
@@ -420,6 +449,8 @@ parse_frame:
 	; get_byte
 	ldrb r4, [r11], #1			; r4 = ggggbbbb
 
+	.if _INDEX_PALETTE
+	.else
 	strb r5, [r7], #1			; logical colour
 	mov r0, #16
 	strb r0, [r7], #1			; physical colour
@@ -438,13 +469,17 @@ parse_frame:
 	strb r0, [r7], #1+3			; blue component
 
 	add r6, r6, #1				; palette_count++
+	.endif
 
 .3:
 	add r5, r5, #1
 	cmp r5, #16
 	blt .2
 
+	.if _INDEX_PALETTE
+	.else
 	str r6, palette_count
+	.endif
 
 .1:
 
@@ -1157,6 +1192,11 @@ span_buffer_end:
 
 scene1_data_index:
 .incbin "data/index.bin"
+
+scene1_colours_index:
+.incbin "data/colours.bin"
+
+.equ scene1_colours_array, scene1_colours_index + 1800
 
 scene1_data_stream:
 .incbin "data/scene1.bin"
