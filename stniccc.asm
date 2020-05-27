@@ -5,7 +5,7 @@
 .equ _TESTS, 0
 .equ _UNROLL_SPAN, 1
 .equ _DRAW_WIREFRAME, 0
-.equ _ENABLE_MUSIC, 0
+.equ _ENABLE_MUSIC, 1
 
 .equ Screen_Banks, 3
 .equ Screen_Mode, 9
@@ -31,6 +31,9 @@ stack_base:
 
 scr_bank:
 	.long 0
+
+wtaf:
+	.skip 36
 
 main:
 	MOV r0,#22	;Set MODE
@@ -283,6 +286,12 @@ exit:
 	; wait for vsync (any pending buffers)
 	mov r0, #19
 	swi OS_Byte
+
+.if _ENABLE_MUSIC
+	; disable music
+	mov r0, #0
+	swi QTM_Stop
+.endif
 
 	; disable vsync event
 	mov r0, #OSByte_EventDisable
@@ -1179,10 +1188,6 @@ span_buffer_min_y:
 	.long 0
 span_buffer_max_y:
 	.long 0
-
-module_filename:
-	.byte "checknobankh"
-	.byte 0
 
 .p2align 8
 span_buffer_start:

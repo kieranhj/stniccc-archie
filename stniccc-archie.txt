@@ -95,3 +95,18 @@ Code = 7k..
 Wimpslot = 625+146+7=
 
 Sarah says - don't expect more than 816K of usable RAM on a 1Mb machine. :(
+
+
+26/5/2020
+~~~
+If STNICCC is too passe, how about remixing it?
+Use encoder.py to spit out the offset of each frame in the sequence.
+And a palette number to use - maximum of 108 palette changes.
+Move to 2Mb and store data uncompressed as per before.
+Can then render any frame on demand, so can go forwards, backwards etc.
+Also have access to the current palette so can lerp to other colours.
+E.g. desaturate to b&w in reverse, super saturate, simulate lighting
+or disco colours etc.
+Perhaps sequence this to some new music from Rhino?
+
+Assemble the scene from the polys somehow?
