@@ -5,7 +5,7 @@
 .equ _TESTS, 0
 .equ _UNROLL_SPAN, 1
 .equ _DRAW_WIREFRAME, 0
-.equ _ENABLE_MUSIC, 1
+.equ _ENABLE_MUSIC, 0
 .equ _ALWAYS_CLS, 1
 .equ _INDEX_PALETTE, 1
 
@@ -142,6 +142,8 @@ main_loop:
 	;	swi OS_Byte
 
 	.if _INDEX_PALETTE
+	ldr r9, palette_count
+	str r9, palette_pending
 	.else
 	; Set the palette from the previous frame if there is one
 	ldr r9, palette_count
@@ -201,21 +203,6 @@ main_loop:
 	subs r11, r11, #1
 	bmi exit
 	str r11, frame_number
-
-	.if _INDEX_PALETTE
-	; Palette for frame should be set in event handler.
-	ldr r9, palette_count
-	adrl r11, scene1_colours_array
-	add r1, r11, r9, lsl #7			; each block is 16 * 8 bytes = 128
-
-	mov r0, #12						; OS_Word 12 = redefine palette
-	mov r9, #16						; do all 16 colours
-.3:
-	swi OS_Word
-	add r1, r1, #8
-	subs r9, r9, #1
-	bne .3
-	.endif
 
 	;cmp r0, #POLY_DESC_END_OF_STREAM
 	;beq exit
@@ -336,6 +323,21 @@ event_handler:
 	MOV r0,r0
 	STR lr, [sp, #-4]!
 	SWI XOS_Byte
+
+	.if _INDEX_PALETTE
+	; Palette for frame should be set in event handler.
+	ldr r2, palette_pending
+	adrl r3, scene1_colours_array
+	add r1, r3, r2, lsl #7			; each block is 16 * 8 bytes = 128
+	mov r0, #12						; OS_Word 12 = redefine palette
+	mov r2, #16						; do all 16 colours
+.3:
+	swi XOS_Word
+	add r1, r1, #8
+	subs r2, r2, #1
+	bne .3
+	.endif
+
 	LDR lr, [sp], #4
 	TEQP r9, #0    ;Restore old mode
 	MOV r0, r0
@@ -349,6 +351,9 @@ last_vsync:
 	.long -1
 
 buffer_pending:
+	.long 0
+
+palette_pending:
 	.long 0
 
 error_handler:

@@ -4,6 +4,7 @@
 .equ OS_Byte, 6
 .equ XOS_Byte, OS_Byte | (1 << 17)
 .equ OS_Word, 7
+.equ XOS_Word, OS_Word | (1 << 17)
 .equ OS_File, 8
 .equ OS_Exit, 0x11
 .equ OS_BreakPt, 0x17
