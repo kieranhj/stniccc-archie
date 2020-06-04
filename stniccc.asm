@@ -5,7 +5,7 @@
 .equ _TESTS, 0
 .equ _UNROLL_SPAN, 1
 .equ _DRAW_WIREFRAME, 0
-.equ _ENABLE_MUSIC, 0
+.equ _ENABLE_MUSIC, 1
 .equ _ALWAYS_CLS, 1
 .equ _INDEX_PALETTE, 1
 
@@ -75,6 +75,9 @@ main:
 	mov r0, #0
 	adrl r1, module_data
 	swi QTM_Load
+
+	mov r0, #48
+	swi QTM_SetSampleSpeed
 .endif
 
 	; Clear all screen buffers

@@ -114,3 +114,7 @@ Assemble the scene from the polys somehow?
 To B&W:
 R*0.25 + G*0.5 + B*0.25 is a fast approximation.
 r>>2 + g>>1 + b>>2
+
+Using per-frame rendering &
+Enable music with lower sample rate.
+A3000 w/ music = &1657 vsyncs (played backwards) ~= 15.7fps.
