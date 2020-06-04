@@ -110,3 +110,7 @@ or disco colours etc.
 Perhaps sequence this to some new music from Rhino?
 
 Assemble the scene from the polys somehow?
+
+To B&W:
+R*0.25 + G*0.5 + B*0.25 is a fast approximation.
+r>>2 + g>>1 + b>>2
