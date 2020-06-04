@@ -118,3 +118,29 @@ r>>2 + g>>1 + b>>2
 Using per-frame rendering &
 Enable music with lower sample rate.
 A3000 w/ music = &1657 vsyncs (played backwards) ~= 15.7fps.
+
+Flow for NOVA compofiller
+~~~
+1. Fade up title screen
+2. Fade out
+3. Play sequence backwards in colour
+4. Fade out
+5. Show simple timer?
+6. Fade in b&w first frame
+7. Play forwards in b&w, increasing in speed
+8. White out on last frame
+9. Fade up outro card
+10. Fade out outro card
+
+TODO
+~~~
+1. Get basic flow working: screen > backwards > time > forwards inc. in speed > screen
+   => Load images from disc to save time/space
+2. Add screen fades
+3. Add b&w palette to fwd playback
+4. Load scene1.bin from disc (show that it's original data)
+5. Load MOD from disc
+6. Build process to make !folder
+7. Memory nonsense - compress images or meh?
+8. Polish - centre screen, timings etc.
+9. Icon, readmes etc.
