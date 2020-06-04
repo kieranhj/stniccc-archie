@@ -107,10 +107,11 @@ main:
 	SWI OS_Claim
 
 	; Claim the Event vector
+	; Claim the Event vector
 	mov r0, #EventV
 	adr r1, event_handler
 	mov r2, #0
-	swi OS_Claim
+	swi OS_AddToVector
 
 	bl initialise_span_buffer
 
