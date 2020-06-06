@@ -117,14 +117,14 @@ class Colours:
     def write(self, data):
         # Actually writing 5 bytes as RISCOS OSWORD block:
         for i in range(16):
-            data.append(i)          # logical colour
-            data.append(16)         # use RGB
+            # data.append(i)          # logical colour
+            # data.append(16)         # use RGB
             data.append(((self._colours[i][0] << 5) | 0x10) & 0xff)  # red
             data.append(((self._colours[i][1] << 5) | 0x10) & 0xff)  # green
             data.append(((self._colours[i][2] << 5) | 0x10) & 0xff)  # blue
             data.append(0)
-            data.append(0)
-            data.append(0)          # pad to 8 bytes
+            # data.append(0)
+            # data.append(0)          # pad to 8 bytes
 
 class Palette:
 

@@ -195,7 +195,7 @@ backwards_loop:
 	adrl r4, scene1_colours_index
 	ldrb r5, [r4, r0]				; colour index for this frame
 	adrl r3, scene1_colours_array
-	add r1, r3, r5, lsl #7			; each block is 16 * 8 bytes = 128
+	add r1, r3, r5, lsl #6			; each block is 16 * 4 bytes =64
 	str r1, palette_block_addr
 
 	adrl r2, scene1_data_index
@@ -268,7 +268,7 @@ forwards_loop:
 	adrl r4, scene1_colours_index
 	ldrb r5, [r4, r0]				; colour index for this frame
 	adrl r3, scene1_colours_array
-	add r1, r3, r5, lsl #7			; each block is 16 * 8 bytes = 128
+	add r1, r3, r5, lsl #6			; each block is 16 * 4 bytes = 64
 	str r1, palette_block_addr
 
 	adrl r2, scene1_data_index
@@ -431,6 +431,7 @@ event_handler:
 	STR lr, [sp, #-4]!
 	SWI XOS_Byte
 
+.if 0
 	; is there a palette block to set for the new screen?
 	ldr r1, palette_pending
 	cmp r1, #0
@@ -444,6 +445,37 @@ event_handler:
 	bne .3
 	str r2, palette_pending
 .4:
+.else
+	ldr r2, palette_pending
+	cmp r2, #0
+	beq .4
+
+    adr r1, palette_osword_block
+    mov r0, #16
+    strb r0, [r1, #1]       ; physical colour
+
+    mov r3, #0
+    .3:
+    strb r3, [r1, #0]       ; logical colour
+
+    ldr r4, [r2], #4            ; rgbx
+    and r0, r4, #0xff
+    strb r0, [r1, #2]       ; red
+    mov r0, r4, lsr #8
+    strb r0, [r1, #3]       ; green
+    mov r0, r4, lsr #16
+    strb r0, [r1, #4]       ; blue
+    mov r0, #12
+    swi XOS_Word
+
+    add r3, r3, #1
+    cmp r3, #16
+    blt .3
+
+	mov r0, #0
+	str r0, palette_pending
+.4:
+.endif
 
 	LDR lr, [sp], #4
 	TEQP r9, #0    ;Restore old mode
