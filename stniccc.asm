@@ -263,6 +263,23 @@ exit:
 	mov r0, #19
 	swi OS_Byte
 
+	; Display outro card
+	bl swap_screens
+	adr r1, outro_filename
+	bl load_image_to_screen
+
+	adr r2, outro_pal_block
+	bl palette_set_block
+
+	ldr r1, scr_bank			; bank we want to display next
+	str r1, buffer_pending		; we might overwrite a bank if too fast (drop a frame?)
+
+	; Wait 4s
+	MOV r0, #OSByte_ReadKey
+	MOV r1, #Wait_Centisecs_lo
+	MOV r2, #Wait_Centisecs_hi
+	SWI OS_Byte
+
 .if _ENABLE_MUSIC
 	; disable music
 	mov r0, #0
@@ -340,6 +357,7 @@ event_handler:
 	add r1, r1, #8
 	subs r2, r2, #1
 	bne .3
+	str r2, palette_pending
 .4:
 
 	LDR lr, [sp], #4
@@ -348,7 +366,7 @@ event_handler:
 	LDMIA sp!, {r2-r12}
 	LDMIA sp!, {r0-r1, pc}
 
-.skip 8
+.skip 4
 
 scr_bank:
 	.long 0
@@ -648,6 +666,13 @@ title_filename:
 
 title_pal_block:
 .incbin "build/title.pal"
+
+outro_filename:
+	.byte "<Demo$Dir>.Outro",0
+	.align 4
+
+outro_pal_block:
+.incbin "build/outro.pal"
 
 ; ============================================================================
 ; BSS Segment
