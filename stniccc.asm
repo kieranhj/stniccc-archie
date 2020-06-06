@@ -23,6 +23,8 @@
 .equ Wait_Centisecs_lo, (400) & 0xff
 .equ Wait_Centisecs_hi, (400) >> 8
 
+.equ Sequence_Total_Frames, 1800
+
 .include "swis.h.asm"
 
 .org 0x8000
@@ -153,7 +155,7 @@ main:
 	bl swap_screens
 	bl screen_cls
 
-main_loop:   
+backwards_loop:   
 	; debug
 	bl debug_write_vsync_count
 
@@ -206,11 +208,8 @@ main_loop:
 
 	ldr r11, frame_number
 	subs r11, r11, #1
-	bmi exit
+	bmi done_backwards_loop
 	str r11, frame_number
-
-	;cmp r0, #POLY_DESC_END_OF_STREAM
-	;beq exit
 
 	;Exit if SPACE is pressed
 	MOV r0, #OSByte_ReadKey
@@ -220,9 +219,93 @@ main_loop:
 	
 	CMP r1, #0xff
 	CMPEQ r2, #0xff
-	BEQ exit
+	BEQ done_backwards_loop
 	
-	B main_loop
+	B backwards_loop
+
+done_backwards_loop:
+
+	mov r11, #0
+	str r11, frame_number
+
+forwards_loop:
+	; debug
+	bl debug_write_vsync_count
+
+	; Block if we've not even had a vsync since last time - we're >50Hz!
+	ldr r1, last_vsync
+.1:
+	ldr r2, vsync_count
+	cmp r1, r2
+	beq .1
+	str r2, last_vsync
+
+	; Swap banks
+	; Display whichever bank we've just written to
+	ldr r1, scr_bank			; bank we want to display next
+	str r1, buffer_pending		; we might overwrite a bank if too fast (drop a frame?)
+	; If we have more than 3 banks then this needs to be a queue
+	; This now happens in vsync event handler
+	;	mov r0, #OSByte_WriteDisplayBank
+	;	swi OS_Byte
+
+	ldr r1, palette_block_addr
+	str r1, palette_pending
+
+	bl swap_screens
+
+	; Wait for vsync if double buffering
+	.if Screen_Banks <= 2
+	mov r0, #OSByte_Vsync
+	swi OS_Byte
+	.endif
+
+	; Do stuff here!
+	ldr r0, frame_number
+
+	adrl r4, scene1_colours_index
+	ldrb r5, [r4, r0]				; colour index for this frame
+	adrl r3, scene1_colours_array
+	add r1, r3, r5, lsl #7			; each block is 16 * 8 bytes = 128
+	str r1, palette_block_addr
+
+	adrl r2, scene1_data_index
+	ldr r3, [r2, r0, lsl #2]		; offset for this frame number
+
+	adrl r1, scene1_data_stream
+	add r11, r3, r1					; pointer to data for frame
+
+	;ldr r11, parse_frame_ptr
+	bl parse_frame
+	;str r11, parse_frame_ptr
+
+	ldr r1, forwards_speed
+	ldr r0, forwards_count
+	add r0, r0, #1
+	cmp r0, #100
+	movge r0, #0
+	addge r1, r1, #1
+	strge r1, forwards_speed
+	str r0, forwards_count
+
+	ldr r11, frame_number
+	add r11, r11, r1
+	ldr r1, max_frames
+	cmp r11, r1
+	bge exit
+	str r11, frame_number
+
+	;Exit if SPACE is pressed
+;	MOV r0, #OSByte_ReadKey
+;	MOV r1, #IKey_Space
+;	MOV r2, #0xff
+;	SWI OS_Byte
+	
+;	CMP r1, #0xff
+;	CMPEQ r2, #0xff
+;	BEQ exit
+	
+	B forwards_loop
 
 error_noscreenmem:
 	.long 0
@@ -366,7 +449,7 @@ event_handler:
 	LDMIA sp!, {r2-r12}
 	LDMIA sp!, {r0-r1, pc}
 
-.skip 4
+.skip 0
 
 scr_bank:
 	.long 0
@@ -637,7 +720,16 @@ parse_frame_ptr:
 	.long scene1_data_stream
 
 frame_number:
-	.long 1799
+	.long Sequence_Total_Frames-1
+
+max_frames:
+	.long Sequence_Total_Frames
+
+forwards_count:
+	.long 0
+
+forwards_speed:
+	.long 1
 
 polygon_list:
 	.long 32, 32
