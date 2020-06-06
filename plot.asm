@@ -200,6 +200,7 @@ plot_polygon_span:
 
 	; Set up our screen buffer pointer
 	ldr r12, screen_addr		; R12=generic screen_addr ptr
+	add r12, r12, #Screen_Offset
 	add r12, r12, r2, lsl #7	; r10 = screen_addr + starty * 128
 	add r12, r12, r2, lsl #5	; r10 += starty * 32 = starty * 160
 

@@ -23,6 +23,8 @@
 .equ Wait_Centisecs_lo, (400) & 0xff
 .equ Wait_Centisecs_hi, (400) >> 8
 
+.equ Screen_Offset, (Screen_Stride*(Screen_Height-Window_Height)/2)+((Screen_Width-Window_Width)/4)
+
 .equ Sequence_Total_Frames, 1800
 
 .include "swis.h.asm"
@@ -503,6 +505,7 @@ swap_screens:
 ; R12=screen_addr, trashes r7, r8, r9
 window_cls:
 	ldr r8, screen_addr
+	add r8, r8, #Screen_Offset
 	add r9, r8, #Window_Bytes
 	mov r0, #0
 	mov r1, #0
