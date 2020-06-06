@@ -272,17 +272,20 @@ forwards_loop:
 	; Do stuff here!
 	ldr r0, frame_number
 
-	adrl r4, scene1_colours_index
-	ldrb r5, [r4, r0]				; colour index for this frame
-	adrl r3, scene1_colours_array
-	add r1, r3, r5, lsl #6			; each block is 16 * 4 bytes = 64
-	str r1, palette_block_addr
-
 	adrl r2, scene1_data_index
 	ldr r3, [r2, r0, lsl #2]		; offset for this frame number
 
 	adrl r1, scene1_data_stream
 	add r11, r3, r1					; pointer to data for frame
+
+	adrl r4, scene1_colours_index
+	ldrb r5, [r4, r0]				; colour index for this frame
+	adrl r3, scene1_colours_array
+	add r2, r3, r5, lsl #6			; each block is 16 * 4 bytes = 64
+
+	bl palette_make_greyscale
+	adr r2, palette_interp_block
+	str r2, palette_block_addr
 
 	;ldr r11, parse_frame_ptr
 	bl parse_frame

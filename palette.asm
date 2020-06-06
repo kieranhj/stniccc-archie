@@ -32,6 +32,33 @@ palette_set_block:
     blt .1
 	ldr pc, [sp], #4			; rts
 
+; R2 = palette block ptr
+palette_make_greyscale:
+	str lr, [sp, #-4]!			; push lr on stack
+    adr r1, palette_interp_block
+
+    mov r3, #16
+    .1:
+    ldr r4, [r2], #4            ; rgbx
+
+    mov r5, r4, lsr #2          ; red * 0.25
+    and r5, r5, #0xff
+    mov r6, r4, lsr #9          ; green * 0.5
+    and r6, r6, #0xff
+    mov r7, r4, lsr #18         ; blue * 0.25
+    and r7, r7, #0xff
+    
+    add r0, r5, r6
+    add r0, r0, r7
+    orr r0, r0, r0, lsl #8
+    orr r0, r0, r0, lsl #8
+
+    str r0, [r1], #4
+    
+    subs r3, r3, #1
+    bne .1
+	ldr pc, [sp], #4			; rts
+
 palette_osword_block:
     .skip 8
     ; logical colour
@@ -40,3 +67,6 @@ palette_osword_block:
     ; green
     ; blue
     ; (pad)
+
+palette_interp_block:
+    .skip 64
