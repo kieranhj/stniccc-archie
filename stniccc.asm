@@ -82,6 +82,13 @@ main:
 	SWI OS_WriteC
 	SWI OS_WriteC
 
+	; Load scene1.bin
+	mov r0, #0xff
+	adr r1, scene1_filename
+	adr r2, scene1_data_stream
+    mov r3, #0
+	swi OS_File
+
 .if _ENABLE_MUSIC
 	; Load module
 	mov r0, #0
@@ -801,6 +808,10 @@ outro_filename:
 outro_pal_block:
 .incbin "build/outro.pal"
 
+scene1_filename:
+	.byte "<Demo$Dir>.Scene1",0
+	.align 4
+
 ; ============================================================================
 ; BSS Segment
 ; ============================================================================
@@ -825,9 +836,6 @@ scene1_colours_index:
 
 .equ scene1_colours_array, scene1_colours_index + 1800
 
-scene1_data_stream:
-.incbin "data/scene1.bin"
-
 ; ============================================================================
 ; Music
 ; ============================================================================
@@ -837,3 +845,11 @@ scene1_data_stream:
 module_data:
 .incbin "data/checknobankh.mod"
 .endif
+
+; ============================================================================
+; Music
+; ============================================================================
+
+.p2align 8
+scene1_data_stream:
+;.incbin "data/scene1.bin"
