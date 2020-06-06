@@ -8,7 +8,6 @@
 .equ _DRAW_WIREFRAME, 0
 .equ _ENABLE_MUSIC, 1
 .equ _ALWAYS_CLS, 1
-.equ _INDEX_PALETTE, 1
 
 .equ Screen_Banks, 3
 .equ Screen_Mode, 9
@@ -20,6 +19,9 @@
 .equ Screen_Bytes, Screen_Stride*Screen_Height
 .equ Window_Stride, Screen_Width/2		; 4bpp
 .equ Window_Bytes, Window_Stride*Window_Height
+
+.equ Wait_Centisecs_lo, (400) & 0xff
+.equ Wait_Centisecs_hi, (400) >> 8
 
 .include "swis.h.asm"
 
@@ -129,6 +131,28 @@ main:
 	swi QTM_Start
 .endif
 
+	; Display title card
+	bl swap_screens
+	adr r1, title_filename
+	bl load_image_to_screen
+
+	adr r2, title_pal_block
+	bl palette_set_block
+
+	ldr r1, scr_bank			; bank we want to display next
+	str r1, buffer_pending		; we might overwrite a bank if too fast (drop a frame?)
+
+	; Wait 4s
+	MOV r0, #OSByte_ReadKey
+	MOV r1, #Wait_Centisecs_lo
+	MOV r2, #Wait_Centisecs_hi
+	SWI OS_Byte
+
+	; Wipe previous screen
+	ldr r8, screen_addr
+	bl swap_screens
+	bl screen_cls
+
 main_loop:   
 	; debug
 	bl debug_write_vsync_count
@@ -150,37 +174,10 @@ main_loop:
 	;	mov r0, #OSByte_WriteDisplayBank
 	;	swi OS_Byte
 
-	.if _INDEX_PALETTE
-	ldr r9, palette_count
-	str r9, palette_pending
-	.else
-	; Set the palette from the previous frame if there is one
-	ldr r9, palette_count
-	cmp r9, #0
-	beq .2
+	ldr r1, palette_block_addr
+	str r1, palette_pending
 
-	mov r0, #12
-	adrl r1, palette_block
-.3:
-	swi OS_Word
-	add r1, r1, #8
-	subs r9, r9, #1
-	bne .3
-
-	str r9, palette_count
-.2:
-	.endif
-
-	; Increment to next bank for writing
-	ldr r1, scr_bank
-	add r1, r1, #1
-	cmp r1, #Screen_Banks
-	movgt r1, #1
-	str r1, scr_bank
-
-	; Now set the screen bank to write to
-	mov r0, #OSByte_WriteVDUBank
-	swi OS_Byte
+	bl swap_screens
 
 	; Wait for vsync if double buffering
 	.if Screen_Banks <= 2
@@ -188,15 +185,14 @@ main_loop:
 	swi OS_Byte
 	.endif
 
-	; Back buffer address for writing bank stored at screen_addr
-	bl get_screen_addr
-
 	; Do stuff here!
 	ldr r0, frame_number
 
 	adrl r4, scene1_colours_index
 	ldrb r5, [r4, r0]				; colour index for this frame
-	strb r5, palette_count
+	adrl r3, scene1_colours_array
+	add r1, r3, r5, lsl #7			; each block is 16 * 8 bytes = 128
+	str r1, palette_block_addr
 
 	adrl r2, scene1_data_index
 	ldr r3, [r2, r0, lsl #2]		; offset for this frame number
@@ -333,11 +329,10 @@ event_handler:
 	STR lr, [sp, #-4]!
 	SWI XOS_Byte
 
-	.if _INDEX_PALETTE
-	; Palette for frame should be set in event handler.
-	ldr r2, palette_pending
-	adrl r3, scene1_colours_array
-	add r1, r3, r2, lsl #7			; each block is 16 * 8 bytes = 128
+	; is there a palette block to set for the new screen?
+	ldr r1, palette_pending
+	cmp r1, #0
+	beq .4
 	mov r0, #12						; OS_Word 12 = redefine palette
 	mov r2, #16						; do all 16 colours
 .3:
@@ -345,13 +340,15 @@ event_handler:
 	add r1, r1, #8
 	subs r2, r2, #1
 	bne .3
-	.endif
+.4:
 
 	LDR lr, [sp], #4
 	TEQP r9, #0    ;Restore old mode
 	MOV r0, r0
 	LDMIA sp!, {r2-r12}
 	LDMIA sp!, {r0-r1, pc}
+
+.skip 8
 
 scr_bank:
 	.long 0
@@ -387,11 +384,25 @@ error_handler:
 	LDMIA sp!, {r0-r2, lr}
 	MOVS pc, lr
 
+swap_screens:
+	; Increment to next bank for writing
+	ldr r1, scr_bank
+	add r1, r1, #1
+	cmp r1, #Screen_Banks
+	movgt r1, #1
+	str r1, scr_bank
+
+	; Now set the screen bank to write to
+	mov r0, #OSByte_WriteVDUBank
+	swi OS_Byte
+
+	; Back buffer address for writing bank stored at screen_addr
+	b get_screen_addr
+
 ; R12=screen_addr, trashes r7, r8, r9
 window_cls:
 	ldr r8, screen_addr
 	add r9, r8, #Window_Bytes
-
 	mov r0, #0
 	mov r1, #0
 	mov r2, #0
@@ -413,7 +424,32 @@ window_cls:
 	add r8, r8, #32
 	cmp r8, r9
 	blt .1
+	mov pc, lr
 
+; trashes r0-r9
+screen_cls:
+	add r9, r8, #Screen_Bytes
+	mov r0, #0
+	mov r1, #0
+	mov r2, #0
+	mov r3, #0
+	mov r4, #0
+	mov r5, #0
+	mov r6, #0
+	mov r7, #0
+.1:
+	stmia r8!, {r0-r7}
+	stmia r8!, {r0-r7}
+	stmia r8!, {r0-r7}
+	stmia r8!, {r0-r7}
+	stmia r8!, {r0-r7}
+	stmia r8!, {r0-r7}
+	stmia r8!, {r0-r7}
+	stmia r8!, {r0-r7}
+	stmia r8!, {r0-r7}
+	stmia r8!, {r0-r7}
+	cmp r8, r9
+	blt .1
 	mov pc, lr
 
 ; ============================================================================
@@ -453,54 +489,18 @@ parse_frame:
 	mov r2, r1, lsl #24
 	orr r2, r2, r0, lsl #16		; r2 = r1 << 24 | r0 << 16
 
-	.if _INDEX_PALETTE
-	.else
-	mov r6, #0					; r6 = palette_count
-	adrl r7, palette_block		; r7 = &palette_block
-	.endif
-
 	; read palette words
 	mov r5, #0					; r1 = palette loop counter
 .2:
 	movs r2, r2, asl #1
 	bcc .3
-
-	; get_byte
-	ldrb r3, [r11], #1			; r3 = xxxxrrrr
-	; get_byte
-	ldrb r4, [r11], #1			; r4 = ggggbbbb
-
-	.if _INDEX_PALETTE
-	.else
-	strb r5, [r7], #1			; logical colour
-	mov r0, #16
-	strb r0, [r7], #1			; physical colour
-
-	mov r0, r3, lsl #5
-	orr r0, r0, #0x10
-	strb r0, [r7], #1			; red component
-
-	and r0, r4, #0x70
-	mov r0, r0, lsl #1
-	orr r0, r0, #0x10
-	strb r0, [r7], #1			; green component
-
-	mov r0, r4, lsl #5
-	orr r0, r0, #0x10
-	strb r0, [r7], #1+3			; blue component
-
-	add r6, r6, #1				; palette_count++
-	.endif
-
+	; just consume the palette data here.
+	; get_byte get_byte
+	ldrb r3, [r11], #2
 .3:
 	add r5, r5, #1
 	cmp r5, #16
 	blt .2
-
-	.if _INDEX_PALETTE
-	.else
-	str r6, palette_count
-	.endif
 
 .1:
 
@@ -631,11 +631,8 @@ polygon_list:
 	.long 0, 0
 	.long 0, 0
 
-palette_count:
+palette_block_addr:
 	.long 0
-
-palette_block:
-	.skip 8*16
 
 ; ============================================================================
 ; Additional code modules
@@ -643,6 +640,14 @@ palette_block:
 
 .include "plot.asm"
 .include "palette.asm"
+.include "image.asm"
+
+title_filename:
+	.byte "<Demo$Dir>.Title",0
+	.align 4
+
+title_pal_block:
+.incbin "build/title.pal"
 
 ; ============================================================================
 ; BSS Segment

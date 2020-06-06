@@ -13,10 +13,8 @@ palette_set_colour:
     and r0, r4, #0xff
     strb r0, [r1, #2]       ; red
     mov r0, r4, lsr #8
-    and r0, r4, #0xff
     strb r0, [r1, #3]       ; green
     mov r0, r4, lsr #16
-    and r0, r4, #0xff
     strb r0, [r1, #4]       ; blue
     mov r0, #12
     swi OS_Word
@@ -31,7 +29,7 @@ palette_set_block:
     bl palette_set_colour
     add r3, r3, #1
     cmp r3, #16
-    bcc .1
+    blt .1
 	ldr pc, [sp], #4			; rts
 
 palette_osword_block:
