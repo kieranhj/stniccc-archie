@@ -45,7 +45,7 @@ my_test_points:
 
 	bl initialise_span_buffer
 
-	adrl r1, test_poly_data
+	adrl r1, polygon_list
 	mov r0, #5
 	mov r4, #6
 	bl plot_polygon_span
