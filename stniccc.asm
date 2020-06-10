@@ -91,8 +91,8 @@ main:
 
 .if _ENABLE_MUSIC
 	; Load module
-	mov r0, #0
-	adrl r1, module_data
+	adrl r0, module_filename
+	mov r1, #0
 	swi QTM_Load
 
 	mov r0, #48
@@ -150,14 +150,28 @@ main:
 	adr r2, title_pal_block
 	bl palette_set_block
 
-	ldr r1, scr_bank			; bank we want to display next
-	str r1, buffer_pending		; we might overwrite a bank if too fast (drop a frame?)
+	; Show screen
+	ldr r1, scr_bank
+	str r1, buffer_pending
 
 	; Wait 4s
-	MOV r0, #OSByte_ReadKey
-	MOV r1, #Wait_Centisecs_lo
-	MOV r2, #Wait_Centisecs_hi
-	SWI OS_Byte
+	bl wait_pause
+
+	; Wipe previous screen
+	ldr r8, screen_addr
+	bl swap_screens
+	bl screen_cls
+
+	; Write string
+	adr r0, title_string
+	swi OS_WriteO
+
+	; Show screen
+	ldr r1, scr_bank
+	str r1, buffer_pending
+
+	; Wait 4s
+	bl wait_pause
 
 	; Wipe previous screen
 	ldr r8, screen_addr
@@ -294,7 +308,7 @@ forwards_loop:
 	ldr r1, forwards_speed
 	ldr r0, forwards_count
 	add r0, r0, #1
-	cmp r0, #100
+	cmp r0, #50
 	movge r0, #0
 	addge r1, r1, #1
 	strge r1, forwards_speed
@@ -324,6 +338,14 @@ error_noscreenmem:
 	.byte "Cannot allocate screen memory!"
 	.align 4
 	.long 0
+
+wait_pause:
+	; Wait 4s
+	MOV r0, #OSByte_ReadKey
+	MOV r1, #Wait_Centisecs_lo
+	MOV r2, #Wait_Centisecs_hi
+	SWI OS_Byte
+	mov pc, lr
 
 debug_write_vsync_count:
 	mov r0, #30
@@ -358,6 +380,20 @@ exit:
 	mov r0, #19
 	swi OS_Byte
 
+	; Write string
+	bl swap_screens
+	bl window_cls
+	; Set default palette
+	adr r0, outro_string
+	swi OS_WriteO
+
+	; Show screen
+	ldr r1, scr_bank
+	str r1, buffer_pending
+
+	; Wait 4s
+	bl wait_pause
+
 	; Display outro card
 	bl swap_screens
 	adr r1, outro_filename
@@ -370,10 +406,7 @@ exit:
 	str r1, buffer_pending		; we might overwrite a bank if too fast (drop a frame?)
 
 	; Wait 4s
-	MOV r0, #OSByte_ReadKey
-	MOV r1, #Wait_Centisecs_lo
-	MOV r2, #Wait_Centisecs_hi
-	SWI OS_Byte
+	bl wait_pause
 
 .if _ENABLE_MUSIC
 	; disable music
@@ -815,6 +848,18 @@ scene1_filename:
 	.byte "<Demo$Dir>.Scene1",0
 	.align 4
 
+title_string:
+	.byte 31,5,15,17,15,"Starting where we left off...",0
+	.align 4
+
+outro_string:
+	.byte 31,11,15,17,15,"To be continued...",0
+	.align 4
+
+module_filename:
+	.byte "<Demo$Dir>.Music",0
+	.align 4
+
 ; ============================================================================
 ; BSS Segment
 ; ============================================================================
@@ -840,17 +885,7 @@ scene1_colours_index:
 .equ scene1_colours_array, scene1_colours_index + 1800
 
 ; ============================================================================
-; Music
-; ============================================================================
-
-.if _ENABLE_MUSIC
-.p2align 8
-module_data:
-.incbin "data/checknobankh.mod"
-.endif
-
-; ============================================================================
-; Music
+; Scene1.bin data stream
 ; ============================================================================
 
 .p2align 8

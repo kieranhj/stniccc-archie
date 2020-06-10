@@ -24,6 +24,7 @@ copy build\stniccc.bin "%FOLDER%\!RunImage,ff8"
 copy data\scene1.bin "%FOLDER%\Scene1,ffd"
 copy build\title.bin "%FOLDER%\Title,ffd"
 copy build\outro.bin "%FOLDER%\Outro,ffd"
+copy data\checknobankh.mod "%FOLDER%\Music,001"
 
 echo Copying !folder...
 set HOSTFS=..\..\Arculator_V2.0_Windows\hostfs
