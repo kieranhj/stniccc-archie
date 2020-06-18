@@ -2,21 +2,29 @@
 ; STNICCC Parser
 ; ============================================================================
 
+; R0 = clear screen flag
+show_parser:
+	str lr, [sp, #-4]!
+
+    cmp r0, #0
+    beq .1
+
+	; Wipe current (visible) screen 
+	ldr r8, screen_addr
+	bl screen_cls
+
+    .1:
+    mov r0, #1                      ; stniccc_update
+    str r0, update_fn_id
+	ldr pc, [sp], #4                ; rts
+
+.skip 4
 
 stniccc_update:
 	str lr, [sp, #-4]!
 
-	; debug
-	bl debug_write_vsync_count
-
-	; Display whichever bank we've just written to
-	ldr r1, scr_bank			; bank we want to display next
-	str r1, buffer_pending		; we might overwrite a bank if too fast (drop a frame?)
-	ldr r1, palette_block_addr
-	str r1, palette_pending
-
     ; Swap to next screen buffer
-	bl swap_screens
+	bl get_next_screen_for_writing
 
 	; Do the STNICCC stuff here!
 	ldr r0, frame_number
@@ -50,6 +58,9 @@ stniccc_update:
 	cmp r11, r1
     movgt r11, r1                   ; clamp to max frame
 	str r11, frame_number
+
+	; Display whichever bank we've just written to
+    bl show_screen_at_vsync
 
     ; return
 	ldr pc, [sp], #4
@@ -222,6 +233,10 @@ parser_set_speed:
     str r0, forwards_speed
     mov pc, lr
 
+parser_set_frame:
+    str r0, frame_number
+    mov pc, lr
+
 parse_frame_ptr:
 	.long scene1_data_stream
 
@@ -229,10 +244,7 @@ frame_number:
 	.long 0 ;Sequence_Total_Frames-1
 
 max_frames:
-	.long Sequence_Total_Frames
-
-forwards_count:
-	.long 0
+	.long Sequence_Total_Frames-1
 
 forwards_speed:
 	.long 1
@@ -249,4 +261,3 @@ polygon_list:
 
 palette_block_addr:
 	.long 0
-

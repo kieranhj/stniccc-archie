@@ -152,6 +152,9 @@ events_loop:
 	beq .1
 	str r2, last_vsync
 
+	; show debug
+	bl debug_write_vsync_count
+
 	; handle any events
 	bl events_update
 
@@ -173,274 +176,6 @@ events_loop:
 	BEQ exit
 	
 	b events_loop
-	
-.if 0
-	; Display title card
-	bl swap_screens
-	adr r1, title_filename
-	bl load_image_to_screen
-
-	adr r2, title_pal_block
-	bl palette_set_block
-
-	; Show screen
-	ldr r1, scr_bank
-	str r1, buffer_pending
-
-	; Wait 4s
-	bl wait_pause
-
-	; Wipe previous screen
-	ldr r8, screen_addr
-	bl swap_screens
-	bl screen_cls
-
-	; Write string
-	mov r3, #15
-	mov r4, #0x00ffffff
-	bl palette_set_colour
-	adr r0, title_string
-	swi OS_WriteO
-
-	; Show screen
-	ldr r1, scr_bank
-	str r1, buffer_pending
-
-	; Wait 4s
-	bl wait_pause
-
-	; Wipe previous screen
-	ldr r8, screen_addr
-	bl swap_screens
-	bl screen_cls
-
-	mov r0, #0
-	str r0, vsync_count
-
-backwards_loop:   
-	; debug
-	bl debug_write_vsync_count
-
-	; Block if we've not even had a vsync since last time - we're >50Hz!
-	ldr r1, last_vsync
-.1:
-	ldr r2, vsync_count
-	cmp r1, r2
-	beq .1
-	str r2, last_vsync
-
-	; Swap banks
-	; Display whichever bank we've just written to
-	ldr r1, scr_bank			; bank we want to display next
-	str r1, buffer_pending		; we might overwrite a bank if too fast (drop a frame?)
-	; If we have more than 3 banks then this needs to be a queue
-	; This now happens in vsync event handler
-	;	mov r0, #OSByte_WriteDisplayBank
-	;	swi OS_Byte
-
-	ldr r1, palette_block_addr
-	str r1, palette_pending
-
-	bl swap_screens
-
-	; Wait for vsync if double buffering
-	.if Screen_Banks <= 2
-	mov r0, #OSByte_Vsync
-	swi OS_Byte
-	.endif
-
-	; Do stuff here!
-	ldr r0, frame_number
-
-	adrl r4, scene1_colours_index
-	ldrb r5, [r4, r0]				; colour index for this frame
-	adrl r3, scene1_colours_array
-	add r1, r3, r5, lsl #6			; each block is 16 * 4 bytes =64
-	str r1, palette_block_addr
-
-	adrl r2, scene1_data_index
-	ldr r3, [r2, r0, lsl #2]		; offset for this frame number
-
-	adrl r1, scene1_data_stream
-	add r11, r3, r1					; pointer to data for frame
-
-	;ldr r11, parse_frame_ptr
-	bl parse_frame
-	;str r11, parse_frame_ptr
-
-	ldr r11, frame_number
-	subs r11, r11, #1
-	bmi done_backwards_loop
-	str r11, frame_number
-
-	;Exit if SPACE is pressed
-	MOV r0, #OSByte_ReadKey
-	MOV r1, #IKey_Space
-	MOV r2, #0xff
-	SWI OS_Byte
-	
-	CMP r1, #0xff
-	CMPEQ r2, #0xff
-	BEQ done_backwards_loop
-	
-	B backwards_loop
-
-done_backwards_loop:
-
-	ldr r1, scr_bank			; bank we want to display next
-	str r1, buffer_pending		; we might overwrite a bank if too fast (drop a frame?)
-	ldr r1, palette_block_addr
-	str r1, palette_pending
-	; wait for vsync (any pending buffers)
-	mov r0, #19
-	swi OS_Byte
-
-	ldr r0, vsync_count
-	str r0, vsync_final
-
-	; Write string
-	bl swap_screens
-	bl window_cls
-	; Set default palette
-	mov r3, #15
-	mov r4, #0x00ffffff
-	bl palette_set_colour
-	adr r0, clock_string
-	swi OS_WriteO
-
-	ldr r6, clock_minutes
-	ldr r5, vsync_final
-	mov r5, r5, lsl #1			; vsyncs * 2 = 100 ticks per second
-	mov r3, #0
-	mov r4, #0
-.1:
-	cmp r5, r6				; minutes
-	blt .2
-	sub r5, r5, r6
-	add r3, r3, #1
-	b .1
-.2:
-	cmp r5, #100				; seconds
-	blt .3
-	sub r5, r5, #100
-	add r4, r4, #1
-	b .2
-.3:
-
-	mov r0, r3
-	adr r1, debug_string
-	mov r2, #8
-	swi OS_ConvertCardinal1
-	adr r0, debug_string
-	swi OS_WriteO
-	mov r0, #58					; ':'
-	swi OS_WriteC
-	mov r0, r4
-	adr r1, debug_string
-	mov r2, #8
-	swi OS_ConvertCardinal1
-	adr r0, debug_string
-	swi OS_WriteO
-	mov r0, #46					; '.'
-	swi OS_WriteC
-	mov r0, r5
-	adr r1, debug_string
-	mov r2, #8
-	swi OS_ConvertCardinal1
-	adr r0, debug_string
-	swi OS_WriteO
-
-	; Show screen
-	ldr r1, scr_bank
-	str r1, buffer_pending
-	; Wait 4s
-	bl wait_pause
-
-	mov r11, #0
-	str r11, frame_number
-
-forwards_loop:
-	; debug
-	bl debug_write_vsync_count
-
-	; Block if we've not even had a vsync since last time - we're >50Hz!
-	ldr r1, last_vsync
-.1:
-	ldr r2, vsync_count
-	cmp r1, r2
-	beq .1
-	str r2, last_vsync
-
-	; Swap banks
-	; Display whichever bank we've just written to
-	ldr r1, scr_bank			; bank we want to display next
-	str r1, buffer_pending		; we might overwrite a bank if too fast (drop a frame?)
-	; If we have more than 3 banks then this needs to be a queue
-	; This now happens in vsync event handler
-	;	mov r0, #OSByte_WriteDisplayBank
-	;	swi OS_Byte
-
-	ldr r1, palette_block_addr
-	str r1, palette_pending
-
-	bl swap_screens
-
-	; Wait for vsync if double buffering
-	.if Screen_Banks <= 2
-	mov r0, #OSByte_Vsync
-	swi OS_Byte
-	.endif
-
-	; Do stuff here!
-	ldr r0, frame_number
-
-	adrl r2, scene1_data_index
-	ldr r3, [r2, r0, lsl #2]		; offset for this frame number
-
-	adrl r1, scene1_data_stream
-	add r11, r3, r1					; pointer to data for frame
-
-	adrl r4, scene1_colours_index
-	ldrb r5, [r4, r0]				; colour index for this frame
-	adrl r3, scene1_colours_array
-	add r2, r3, r5, lsl #6			; each block is 16 * 4 bytes = 64
-
-	bl palette_make_greyscale
-	adr r2, palette_interp_block
-	str r2, palette_block_addr
-
-	;ldr r11, parse_frame_ptr
-	bl parse_frame
-	;str r11, parse_frame_ptr
-
-	ldr r1, forwards_speed
-	ldr r0, forwards_count
-	add r0, r0, #1
-	cmp r0, #50
-	movge r0, #0
-	addge r1, r1, #1
-	strge r1, forwards_speed
-	str r0, forwards_count
-
-	ldr r11, frame_number
-	add r11, r11, r1
-	ldr r1, max_frames
-	cmp r11, r1
-	bge exit
-	str r11, frame_number
-
-	;Exit if SPACE is pressed
-;	MOV r0, #OSByte_ReadKey
-;	MOV r1, #IKey_Space
-;	MOV r2, #0xff
-;	SWI OS_Byte
-	
-;	CMP r1, #0xff
-;	CMPEQ r2, #0xff
-;	BEQ exit
-	
-	B forwards_loop
-.endif
 
 error_noscreenmem:
 	.long 0
@@ -448,6 +183,7 @@ error_noscreenmem:
 	.align 4
 	.long 0
 
+.if 0
 wait_pause:
 	; Wait 4s
 	MOV r0, #OSByte_ReadKey
@@ -455,6 +191,7 @@ wait_pause:
 	MOV r2, #Wait_Centisecs_hi
 	SWI OS_Byte
 	mov pc, lr
+.endif
 
 debug_write_vsync_count:
 	mov r0, #30
@@ -489,38 +226,6 @@ exit:
 	mov r0, #19
 	swi OS_Byte
 
-	; Write string
-	bl swap_screens
-	bl window_cls
-
-	; Set default palette
-	mov r3, #15
-	mov r4, #0x00ffffff
-	bl palette_set_colour
-	adr r0, outro_string
-	swi OS_WriteO
-
-	; Show screen
-	ldr r1, scr_bank
-	str r1, buffer_pending
-
-	; Wait 4s
-	bl wait_pause
-
-	; Display outro card
-	bl swap_screens
-	adr r1, outro_filename
-	bl load_image_to_screen
-
-	adr r2, outro_pal_block
-	bl palette_set_block
-
-	ldr r1, scr_bank			; bank we want to display next
-	str r1, buffer_pending		; we might overwrite a bank if too fast (drop a frame?)
-
-	; Wait 4s
-	bl wait_pause
-
 .if _ENABLE_MUSIC
 	; disable music
 	mov r0, #0
@@ -541,6 +246,8 @@ exit:
 	; release our error handler
 	mov r0, #ErrorV
 	adr r1, error_handler
+	mov r2, #0
+	swi OS_Release
 
 	; Display whichever bank we've just written to
 	mov r0, #OSByte_WriteDisplayBank
@@ -550,9 +257,6 @@ exit:
 	mov r0, #OSByte_WriteVDUBank
 	ldr r1, scr_bank
 	swi OS_Byte
-
-	; Show our final frame count
-	bl debug_write_vsync_count
 
 	SWI OS_Exit
 
@@ -587,21 +291,7 @@ event_handler:
 	STR lr, [sp, #-4]!
 	SWI XOS_Byte
 
-.if 0
-	; is there a palette block to set for the new screen?
-	ldr r1, palette_pending
-	cmp r1, #0
-	beq .4
-	mov r0, #12						; OS_Word 12 = redefine palette
-	mov r2, #16						; do all 16 colours
-.3:
-	swi XOS_Word
-	add r1, r1, #8
-	subs r2, r2, #1
-	bne .3
-	str r2, palette_pending
-.4:
-.else
+	; set full palette if there is a pending palette block
 	ldr r2, palette_pending
 	cmp r2, #0
 	beq .4
@@ -614,7 +304,7 @@ event_handler:
     .3:
     strb r3, [r1, #0]       ; logical colour
 
-    ldr r4, [r2], #4            ; rgbx
+    ldr r4, [r2], #4        ; rgbx
     and r0, r4, #0xff
     strb r0, [r1, #2]       ; red
     mov r0, r4, lsr #8
@@ -631,15 +321,12 @@ event_handler:
 	mov r0, #0
 	str r0, palette_pending
 .4:
-.endif
 
 	LDR lr, [sp], #4
 	TEQP r9, #0    ;Restore old mode
 	MOV r0, r0
 	LDMIA sp!, {r2-r12}
 	LDMIA sp!, {r0-r1, pc}
-
-.skip 0
 
 scr_bank:
 	.long 0
@@ -658,13 +345,6 @@ buffer_pending:
 
 palette_pending:
 	.long 0
-
-clock_minutes:
-	.long 6000
-
-update_set_fn_id:
-	str r0, update_fn_id
-	mov pc, lr
 
 update_fn_id:
 	.long 1
@@ -692,7 +372,16 @@ error_handler:
 	LDMIA sp!, {r0-r2, lr}
 	MOVS pc, lr
 
-swap_screens:
+show_screen_at_vsync:
+	; Show current bank at next vsync
+	ldr r1, scr_bank
+	str r1, buffer_pending
+	; Including its associated palette
+	ldr r1, palette_block_addr
+	str r1, palette_pending
+	mov pc, lr
+
+get_next_screen_for_writing:
 	; Increment to next bank for writing
 	ldr r1, scr_bank
 	add r1, r1, #1

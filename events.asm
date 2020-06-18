@@ -1,5 +1,7 @@
 .equ TRACK_SPEED, 3
 
+; Or could use swi "QTM_Pos" (&47E46) to read current tracker pos.
+
 .macro do_event pattern, temp, func, data
     .long \temp*TRACK_SPEED+\pattern*64*TRACK_SPEED
     .long \data
@@ -30,16 +32,32 @@ events_update:
 do_nothing:
     mov pc, lr
 
+show_pause:
+    mov r0, #0
+    str r0, update_fn_id
+    mov pc, lr
+
 events_ptr:
     .long events_data
 
-.long 1 + 2 * 3
-
 events_data:
-do_event 1,  8,  update_set_fn_id, 0
-do_event 1,  16, update_set_fn_id, 1
-do_event 1,  24, parser_set_speed, -1
-do_event 1,  32, parser_set_speed, 1
-do_event 1,  48, parser_set_speed, -1
-do_event 1,  56, parser_set_speed, 1
+do_event 0,  0,  show_image, 0
+do_event 1,  0,  parser_set_frame, 1799
+do_event 1,  0,  parser_set_speed, -2
+do_event 1,  0,  show_parser, 1
+do_event 1,  8,  show_pause, 0
+do_event 1,  16, show_parser, 0
+do_event 1,  24, parser_set_speed, 1
+do_event 1,  32, parser_set_speed, -1
+do_event 1,  48, parser_set_speed, 1
+do_event 1,  56, parser_set_speed, -1
+
+do_event 2,  0,  show_text_block, 0
+do_event 3,  0,  show_parser, 1
+do_event 4,  0,  parser_set_speed, -2
+do_event 5,  0,  parser_set_speed, -3
+do_event 6,  0,  parser_set_speed, -4
+do_event 7,  0,  parser_set_speed, -5
+do_event 8,  0,  parser_set_speed, -6
+
 do_event 256, 0, do_nothing, 0      ; end
