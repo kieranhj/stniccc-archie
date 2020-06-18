@@ -471,6 +471,8 @@ images_table:
     .long slide_03_lz4-images_table, slide_03_pal_block-images_table
     .long slide_04_lz4-images_table, slide_04_pal_block-images_table
     .long slide_05_lz4-images_table, slide_05_pal_block-images_table
+    .long patarty_lz4-images_table,	 patarty_pal_block-images_table
+    .long logo_lz4-images_table, 	 logo_pal_block-images_table
 
 title_pal_block:
 .incbin "build/title.pal"
@@ -489,6 +491,12 @@ slide_04_pal_block:
 
 slide_05_pal_block:
 .incbin "build/slide_05.pal"
+
+patarty_pal_block:
+.incbin "build/patarty.pal"
+
+logo_pal_block:
+.incbin "build/logo.pal"
 
 text_blocks_table:
 	.long text_01_string-text_blocks_table
@@ -553,6 +561,14 @@ slide_04_lz4:
 .align 4
 slide_05_lz4:
 .incbin "build/slide_05.lz4"
+
+.align 4
+patarty_lz4:
+.incbin "build/patarty.lz4"
+
+.align 4
+logo_lz4:
+.incbin "build/logo.lz4"
 
 ; ============================================================================
 ; Scene1.bin data stream

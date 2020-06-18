@@ -98,6 +98,14 @@ do_event 13, 32, parser_set_filter, 0       ; colour
 do_event 13, 32, parser_set_speed, 4        ; forwards
 do_event 13, 32, show_parser, 1             ; STNICCC
 
-do_event 32, 0,  exit, 0                    ; end
+do_event 14, 0,  show_image, 6              ; Bitshifters
+do_event 14, 32, parser_set_filter, 0       ; colour
+do_event 14, 32, parser_set_speed, 1        ; forwards
+do_event 14, 32, show_parser, 1             ; STNICCC
+
+do_event 16, 0,  show_image, 5              ; Patarty
+do_event 16, 8,  show_parser, 1             ; STNICCC
+
+do_event 0, 0,  exit, 0                    ; end
 
 .skip 4
