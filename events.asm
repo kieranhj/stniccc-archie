@@ -55,7 +55,8 @@ do_event 1,  56, parser_set_speed, -1
 do_event 2,  0,  show_text_block, 0
 do_event 3,  0,  show_parser, 1
 do_event 4,  0,  parser_set_speed, -2
-do_event 5,  0,  parser_set_speed, -3
+do_event 5,  0,  show_image, 1
+do_event 5,  64, show_parser, 1
 do_event 6,  0,  parser_set_speed, -4
 do_event 7,  0,  parser_set_speed, -5
 do_event 8,  0,  parser_set_speed, -6

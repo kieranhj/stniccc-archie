@@ -460,6 +460,14 @@ screen_cls:
 .include "palette.asm"
 .include "image.asm"
 
+; ============================================================================
+; Assets and data
+; ============================================================================
+
+images_table:
+    .long title_filename-images_table, title_pal_block-images_table
+    .long outro_filename-images_table, outro_pal_block-images_table
+
 title_filename:
 	.byte "<Demo$Dir>.Title",0
 	.align 4
@@ -474,10 +482,6 @@ outro_filename:
 outro_pal_block:
 .incbin "build/outro.pal"
 
-scene1_filename:
-	.byte "<Demo$Dir>.Scene1",0
-	.align 4
-
 title_string:
 	.byte 31,5,15,17,15,"Starting where we left off...",0
 	.align 4
@@ -486,8 +490,8 @@ outro_string:
 	.byte 31,11,15,17,15,"To be continued...",0
 	.align 4
 
-clock_string:
-	.byte 31,16,15,17,15,0
+scene1_filename:
+	.byte "<Demo$Dir>.Scene1",0
 	.align 4
 
 module_filename:

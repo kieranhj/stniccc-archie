@@ -6,16 +6,21 @@
 show_image:
 	str lr, [sp, #-4]!			; push lr on stack
 
+    mov r11, r0
+
     ; get a fresh screen bank
     bl get_next_screen_for_writing
 
 	; Load image
-	adr r1, title_filename
-	bl load_image_to_screen
-    ; Find palette
-	adr r2, title_pal_block
+	adr r4, images_table
+    add r3, r4, r11, lsl #3     ; 8 byte stride
+    ldmia r3, {r1, r2}
+    add r1, r1, r4
+    add r2, r2, r4
     str r2, palette_block_addr
 
+    ; r1 = filename
+	bl load_image_to_screen
 	bl show_screen_at_vsync
 
     mov r0, #0                  ; do_nothing
@@ -61,6 +66,10 @@ show_text_block:
 .if 0
 clock_minutes:
 	.long 6000
+
+clock_string:
+	.byte 31,16,15,17,15,0
+	.align 4
 
 show_clock:
 	ldr r0, vsync_count
