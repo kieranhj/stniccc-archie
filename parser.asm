@@ -14,13 +14,23 @@ show_parser:
 	bl screen_cls
 
     .1:
-    mov r0, #1                      ; stniccc_update
+    mov r0, #1                      ; parser_update
     str r0, update_fn_id
 	ldr pc, [sp], #4                ; rts
 
-.skip 4
+parser_set_speed:
+    str r0, forwards_speed
+    mov pc, lr
 
-stniccc_update:
+parser_set_frame:
+    str r0, frame_number
+    mov pc, lr
+
+parser_set_filter:
+    str r0, palette_filter
+    mov pc, lr
+
+parser_update:
 	str lr, [sp, #-4]!
 
     ; Swap to next screen buffer
@@ -42,9 +52,14 @@ stniccc_update:
 	add r11, r3, r1					; pointer to data for frame
 
     ; Do palette stuff here!
-   	;bl palette_make_greyscale
-	;adr r2, palette_interp_block
-	;str r2, palette_block_addr
+    ldr r0, palette_filter
+    cmp r0, #0
+    beq .1
+    ldr r2, palette_block_addr
+   	bl palette_make_greyscale
+	adr r2, palette_interp_block
+	str r2, palette_block_addr
+    .1:
 
     ; r11 contains pointer to STNICCC frame data
 	bl parse_frame
@@ -229,14 +244,6 @@ parse_end_of_frame:
 	ldmfd sp!, {lr}
 	mov pc, lr
 
-parser_set_speed:
-    str r0, forwards_speed
-    mov pc, lr
-
-parser_set_frame:
-    str r0, frame_number
-    mov pc, lr
-
 parse_frame_ptr:
 	.long scene1_data_stream
 
@@ -248,6 +255,9 @@ max_frames:
 
 forwards_speed:
 	.long 1
+
+palette_filter:
+    .long 0
 
 polygon_list:
 	.long 32, 32

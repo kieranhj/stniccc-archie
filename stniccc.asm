@@ -351,7 +351,7 @@ update_fn_id:
 
 update_fn_table:
 	b do_nothing
-	b stniccc_update
+	b parser_update
 
 error_handler:
 	STMDB sp!, {r0-r2, lr}
@@ -456,9 +456,9 @@ screen_cls:
 
 .include "events.asm"
 .include "parser.asm"
-.include "plot.asm"
 .include "palette.asm"
 .include "image.asm"
+.include "plot.asm"
 
 ; ============================================================================
 ; Assets and data

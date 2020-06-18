@@ -48,23 +48,21 @@ show_text_block:
 	ldr r8, screen_addr
 	bl screen_cls
 
-    ; set text colour
-	mov r3, #15
-	mov r4, #0x00ffffff
-	bl palette_set_colour
-
 	; Write string
 	adr r4, text_blocks_table
     ldr r0, [r4, r11, lsl #2]    ; 4 byte stride
     add r0, r0, r4
 	swi OS_WriteO
 
-	; Show screen
-    mov r0, #0
+    ; set text colour
+    adr r0, title_pal_block
     str r0, palette_block_addr
-    str r0, update_fn_id        ; do_nothing
+
+	; Show screen
     bl show_screen_at_vsync
 
+    mov r0, #0
+    str r0, update_fn_id        ; do_nothing
 	ldr pc, [sp], #4			; rts
 
 .if 0
