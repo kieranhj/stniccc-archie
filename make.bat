@@ -12,6 +12,8 @@ if %ERRORLEVEL% neq 0 (
 echo Building assets...
 python bin\png2arc.py -pad -o build\title.bin -p build\title.pal data\title-16.png 9
 python bin\png2arc.py -pad -o build\outro.bin -p build\outro.pal data\outro-16.png 9
+bin\lz4.exe -f build\title.bin build\title.lz4
+bin\lz4.exe -f build\outro.bin build\outro.lz4
 
 echo Making !folder...
 set FOLDER="!BSAATT"
@@ -22,8 +24,8 @@ echo Adding files...
 copy folder\*.* "%FOLDER%\*.*"
 copy build\stniccc.bin "%FOLDER%\!RunImage,ff8"
 copy data\scene1.bin "%FOLDER%\Scene1,ffd"
-copy build\title.bin "%FOLDER%\Title,ffd"
-copy build\outro.bin "%FOLDER%\Outro,ffd"
+rem copy build\title.bin "%FOLDER%\Title,ffd"
+rem copy build\outro.bin "%FOLDER%\Outro,ffd"
 copy data\Arc-NIC5.mod "%FOLDER%\Music,001"
 
 echo Copying !folder...

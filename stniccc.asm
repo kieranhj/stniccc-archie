@@ -459,25 +459,26 @@ screen_cls:
 .include "palette.asm"
 .include "image.asm"
 .include "plot.asm"
+.include "lz4-decode.asm"
 
 ; ============================================================================
 ; Assets and data
 ; ============================================================================
 
 images_table:
-    .long title_filename-images_table, title_pal_block-images_table
-    .long outro_filename-images_table, outro_pal_block-images_table
+    .long title_lz4-images_table, title_pal_block-images_table
+    .long outro_lz4-images_table, outro_pal_block-images_table
 
-title_filename:
-	.byte "<Demo$Dir>.Title",0
-	.align 4
+;title_filename:
+;	.byte "<Demo$Dir>.Title",0
+;	.align 4
 
 title_pal_block:
 .incbin "build/title.pal"
 
-outro_filename:
-	.byte "<Demo$Dir>.Outro",0
-	.align 4
+;outro_filename:
+;	.byte "<Demo$Dir>.Outro",0
+;	.align 4
 
 outro_pal_block:
 .incbin "build/outro.pal"
@@ -525,6 +526,14 @@ scene1_colours_index:
 .incbin "data/colours.bin"
 
 .equ scene1_colours_array, scene1_colours_index + 1800
+
+.align 4
+title_lz4:
+.incbin "build/title.lz4"
+
+.align 4
+outro_lz4:
+.incbin "build/outro.lz4"
 
 ; ============================================================================
 ; Scene1.bin data stream

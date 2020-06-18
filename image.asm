@@ -5,7 +5,6 @@
 ; R0 = image no.
 show_image:
 	str lr, [sp, #-4]!			; push lr on stack
-
     mov r11, r0
 
     ; get a fresh screen bank
@@ -14,26 +13,32 @@ show_image:
 	; Load image
 	adr r4, images_table
     add r3, r4, r11, lsl #3     ; 8 byte stride
-    ldmia r3, {r1, r2}
-    add r1, r1, r4
+    ldmia r3, {r0, r2}
+    add r0, r0, r4
     add r2, r2, r4
     str r2, palette_block_addr
 
     ; r1 = filename
-	bl load_image_to_screen
+	bl decompress_to_screen
 	bl show_screen_at_vsync
 
     mov r0, #0                  ; do_nothing
     str r0, update_fn_id
 	ldr pc, [sp], #4			; rts
 
-; R1 = pointer to filename string
+; R0 = pointer to filename string
 load_image_to_screen:
+    mov r1, r0
     mov r0, #0xff
 	ldr r2, screen_addr
     mov r3, #0
     swi OS_File
     mov pc, lr
+
+; R0 = address of compressed data
+decompress_to_screen:
+    ldr r1, screen_addr
+    b unlz4
 
 ; R0 = text block no.
 show_text_block:
