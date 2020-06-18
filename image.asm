@@ -39,6 +39,8 @@ load_image_to_screen:
 show_text_block:
 	str lr, [sp, #-4]!			; push lr on stack
 
+    mov r11, r0
+
     ; get a fresh screen bank
     bl get_next_screen_for_writing
 
@@ -52,7 +54,9 @@ show_text_block:
 	bl palette_set_colour
 
 	; Write string
-	adr r0, title_string
+	adr r4, text_blocks_table
+    ldr r0, [r4, r11, lsl #2]    ; 4 byte stride
+    add r0, r0, r4
 	swi OS_WriteO
 
 	; Show screen

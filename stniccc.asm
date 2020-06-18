@@ -482,6 +482,10 @@ outro_filename:
 outro_pal_block:
 .incbin "build/outro.pal"
 
+text_blocks_table:
+	.long title_string-text_blocks_table
+	.long outro_string-text_blocks_table
+
 title_string:
 	.byte 31,5,15,17,15,"Starting where we left off...",0
 	.align 4
