@@ -1,4 +1,4 @@
-.equ TRACK_SPEED, 3
+.equ TRACK_SPEED, 4
 
 ; Or could use swi "QTM_Pos" (&47E46) to read current tracker pos.
 
@@ -41,29 +41,29 @@ events_ptr:
     .long events_data
 
 events_data:
-do_event 0,  0,  show_image, 0
+do_event 0,  0,  show_image, 0              ; clapperboard image
 do_event 1,  0,  parser_set_frame, 1799
 do_event 1,  0,  parser_set_speed, -2
-do_event 1,  0,  show_parser, 1
+do_event 1,  0,  show_parser, 1             ; STNICCC backwards
 do_event 1,  8,  show_pause, 0
 do_event 1,  16, show_parser, 0
-do_event 1,  24, parser_set_speed, 1
-do_event 1,  32, parser_set_speed, -1
-do_event 1,  48, parser_set_speed, 1
-do_event 1,  56, parser_set_speed, -1
+do_event 1,  24, parser_set_speed, 1        ; forwards
+do_event 1,  32, parser_set_speed, -1       ; backwards
+do_event 1,  48, parser_set_speed, 1        ; forwards
+do_event 1,  56, parser_set_speed, -1       ; backwards
 
-do_event 2,  0,  show_text_block, 0
-do_event 3,  0,  show_parser, 1
-do_event 3,  16, parser_set_filter, 1
-do_event 3,  32, parser_set_filter, 0
-do_event 3,  48, parser_set_filter, 1
-do_event 4,  0,  parser_set_speed, -2
-do_event 5,  0,  show_image, 1
-do_event 5,  64, show_parser, 1
-do_event 6,  0,  parser_set_speed, -4
-do_event 7,  0,  show_text_block, 1
-do_event 7,  64, parser_set_filter, 0
-do_event 7,  64, show_parser, 1
-do_event 8,  0,  parser_set_speed, -6
+do_event 2,  0,  show_text_block, 0         ; 'starting where we left off'
+do_event 3,  0,  show_parser, 1             ; STNICCC
+do_event 3,  16, parser_set_filter, 1       ; b&w
+do_event 3,  32, parser_set_filter, 0       ; colour
+do_event 3,  48, parser_set_filter, 1       ; b&w
+do_event 4,  0,  parser_set_speed, -2       ; backwards fast
+do_event 5,  0,  show_image, 1              ; bitshifters logo image
+do_event 5,  64, show_parser, 1             ; STNICCC
+do_event 6,  0,  parser_set_speed, -4       ; backwards faster
+do_event 7,  0,  show_text_block, 1         ; 'to be continued'
+do_event 7,  64, parser_set_filter, 0       ; colour
+do_event 7,  64, show_parser, 1             ; STNICCC
+do_event 8,  0,  parser_set_speed, -6       ; backwards super fast
 
-do_event 256, 0, do_nothing, 0      ; end
+do_event 256, 0, do_nothing, 0              ; end
