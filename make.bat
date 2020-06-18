@@ -32,7 +32,7 @@ if %ERRORLEVEL% neq 0 (
 )
 
 echo Making !folder...
-set FOLDER="!BSAATT"
+set FOLDER="!Demand"
 if EXIST %FOLDER% del /Q "%FOLDER%"
 if NOT EXIST %FOLDER% mkdir %FOLDER%
 
