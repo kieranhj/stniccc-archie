@@ -53,32 +53,51 @@ events_ptr:
     .long events_data
 
 events_data:
-do_event 0,  0,  show_image, 0              ; clapperboard image
-do_event 1,  0,  parser_set_frame, 1799
-do_event 1,  0,  parser_set_speed, -2
-do_event 1,  0,  show_parser, 1             ; STNICCC backwards
-do_event 1,  8,  show_pause, 0
-do_event 1,  16, show_parser, 0
-do_event 1,  24, parser_set_speed, 1        ; forwards
-do_event 1,  32, parser_set_speed, -1       ; backwards
-do_event 1,  48, parser_set_speed, 1        ; forwards
-do_event 1,  56, parser_set_speed, -1       ; backwards
+do_event 0,  0,  show_image, 0              ; slide 1 'back by popular demand'
+do_event 1,  0,  parser_set_frame, 0
+do_event 1,  0,  parser_set_speed, 1
+do_event 1,  0,  show_parser, 1             ; STNICCC forwards
+do_event 1,  0x2e, parser_set_speed, -1     ; backwards
+do_event 1,  0x30, parser_set_speed, 1      ; forwards
+do_event 1,  0x32, parser_set_speed, -1     ; backwards
+do_event 1,  0x34, parser_set_speed, 1      ; forwards
+do_event 1,  0x36, parser_set_speed, -1     ; backwards
+do_event 1,  0x38, parser_set_speed, 1      ; forwards
 
-do_event 2,  0,  show_text_block, 0         ; 'starting where we left off'
-do_event 3,  0,  show_parser, 1             ; STNICCC
-do_event 3,  16, parser_set_filter, 1       ; b&w
-do_event 3,  32, parser_set_filter, 0       ; colour
-do_event 3,  48, parser_set_filter, 1       ; b&w
-do_event 4,  0,  parser_set_speed, -2       ; backwards fast
-do_event 5,  0,  show_image, 1              ; bitshifters logo image
+do_event 3,  0,  show_image, 1              ; slide 2 'recognise this?'
+do_event 3,  32, show_parser, 1             ; STNICCC
+do_event 3,  0x2e, parser_set_speed, -1     ; backwards
+do_event 3,  0x30, parser_set_speed, 1      ; forwards
+do_event 3,  0x32, parser_set_speed, -1     ; backwards
+do_event 3,  0x34, parser_set_speed, 1      ; forwards
+do_event 3,  0x36, parser_set_speed, -1     ; backwards
+do_event 3,  0x38, parser_set_speed, 1      ; forwards
+
+do_event 5,  0,  show_image, 2              ; slide 3 'yeah?'
+do_event 5,  32, parser_set_filter, 1       ; b&w
+do_event 5,  32, parser_set_speed, -1       ; backwards
 do_event 5,  32, show_parser, 1             ; STNICCC
-do_event 6,  0,  parser_set_speed, -4       ; backwards faster
-do_event 7,  0,  show_text_block, 1         ; 'to be continued'
+
+do_event 7,  0,  show_image, 3              ; slide 4 'it's called'
 do_event 7,  32, parser_set_filter, 0       ; colour
+do_event 7,  32, parser_set_speed, 1        ; forwards
 do_event 7,  32, show_parser, 1             ; STNICCC
-do_event 8,  0,  parser_set_speed, -6       ; backwards super fast
-do_event 10, 0,  parser_set_speed, 1        ; forwards normal
-do_event 10, 0,  parser_set_filter, 1       ; b&w
-do_event 11, 0,  parser_set_filter, 0       ; colour
+
+do_event 9,  0,  show_image, 4              ; slide 5 'compo filler'
+do_event 9,  32, parser_set_filter, 1       ; b&w
+do_event 9,  32, parser_set_speed, -3       ; back
+do_event 9,  32, show_parser, 1             ; STNICCC
+
+do_event 11, 0,  show_text_block, 0         ; 'not again?'
+do_event 11, 32, parser_set_filter, 0       ; colour
+do_event 11, 32, parser_set_speed, 1        ; forwards
+do_event 11, 32, show_parser, 1             ; STNICCC
+
+do_event 13, 0,  show_text_block, 1         ; 'a demo by...'
+do_event 13, 32, parser_set_filter, 0       ; colour
+do_event 13, 32, parser_set_speed, 4        ; forwards
+do_event 13, 32, show_parser, 1             ; STNICCC
 
 do_event 32, 0,  exit, 0                    ; end
+
+.skip 4

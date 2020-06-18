@@ -11,9 +11,18 @@ if %ERRORLEVEL% neq 0 (
 
 echo Building assets...
 python bin\png2arc.py -pad -o build\title.bin -p build\title.pal data\gfx\title-16.png 9
-python bin\png2arc.py -pad -o build\outro.bin -p build\outro.pal data\gfx\outro-16.png 9
-bin\lz4.exe -f build\title.bin build\title.lz4
-bin\lz4.exe -f build\outro.bin build\outro.lz4
+
+python bin\png2arc.py -pad -o build\slide_01.bin -p build\slide_01.pal data\gfx\slide_01.png 9
+python bin\png2arc.py -pad -o build\slide_02.bin -p build\slide_02.pal data\gfx\slide_02.png 9
+python bin\png2arc.py -pad -o build\slide_03.bin -p build\slide_03.pal data\gfx\slide_03.png 9
+python bin\png2arc.py -pad -o build\slide_04.bin -p build\slide_04.pal data\gfx\slide_04.png 9
+python bin\png2arc.py -pad -o build\slide_05.bin -p build\slide_05.pal data\gfx\slide_05.png 9
+
+bin\lz4.exe -f build\slide_01.bin build\slide_01.lz4
+bin\lz4.exe -f build\slide_02.bin build\slide_02.lz4
+bin\lz4.exe -f build\slide_03.bin build\slide_03.lz4
+bin\lz4.exe -f build\slide_04.bin build\slide_04.lz4
+bin\lz4.exe -f build\slide_05.bin build\slide_05.lz4
 
 echo Making !folder...
 set FOLDER="!BSAATT"

@@ -466,33 +466,40 @@ screen_cls:
 ; ============================================================================
 
 images_table:
-    .long title_lz4-images_table, title_pal_block-images_table
-    .long outro_lz4-images_table, outro_pal_block-images_table
-
-;title_filename:
-;	.byte "<Demo$Dir>.Title",0
-;	.align 4
+    .long slide_01_lz4-images_table, slide_01_pal_block-images_table
+    .long slide_02_lz4-images_table, slide_02_pal_block-images_table
+    .long slide_03_lz4-images_table, slide_03_pal_block-images_table
+    .long slide_04_lz4-images_table, slide_04_pal_block-images_table
+    .long slide_05_lz4-images_table, slide_05_pal_block-images_table
 
 title_pal_block:
 .incbin "build/title.pal"
 
-;outro_filename:
-;	.byte "<Demo$Dir>.Outro",0
-;	.align 4
+slide_01_pal_block:
+.incbin "build/slide_01.pal"
 
-outro_pal_block:
-.incbin "build/outro.pal"
+slide_02_pal_block:
+.incbin "build/slide_01.pal"
+
+slide_03_pal_block:
+.incbin "build/slide_01.pal"
+
+slide_04_pal_block:
+.incbin "build/slide_01.pal"
+
+slide_05_pal_block:
+.incbin "build/slide_01.pal"
 
 text_blocks_table:
-	.long title_string-text_blocks_table
-	.long outro_string-text_blocks_table
+	.long text_01_string-text_blocks_table
+	.long text_02_string-text_blocks_table
 
-title_string:
-	.byte 31,5,15,17,15,"Starting where we left off...",0
+text_01_string:
+	.byte 31,15,15,17,15,"Not again?",0
 	.align 4
 
-outro_string:
-	.byte 31,11,15,17,15,"To be continued...",0
+text_02_string:
+	.byte 31,14,15,17,15,"A demo by...",0
 	.align 4
 
 scene1_filename:
@@ -528,12 +535,24 @@ scene1_colours_index:
 .equ scene1_colours_array, scene1_colours_index + 1800
 
 .align 4
-title_lz4:
-.incbin "build/title.lz4"
+slide_01_lz4:
+.incbin "build/slide_01.lz4"
 
 .align 4
-outro_lz4:
-.incbin "build/outro.lz4"
+slide_02_lz4:
+.incbin "build/slide_02.lz4"
+
+.align 4
+slide_03_lz4:
+.incbin "build/slide_03.lz4"
+
+.align 4
+slide_04_lz4:
+.incbin "build/slide_04.lz4"
+
+.align 4
+slide_05_lz4:
+.incbin "build/slide_05.lz4"
 
 ; ============================================================================
 ; Scene1.bin data stream
