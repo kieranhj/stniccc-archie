@@ -520,10 +520,10 @@ span_buffer_end:
 ; ============================================================================
 
 scene1_data_index:
-.incbin "data/index.bin"
+.incbin "data/stniccc/index.bin"
 
 scene1_colours_index:
-.incbin "data/colours.bin"
+.incbin "data/stniccc/colours.bin"
 
 .equ scene1_colours_array, scene1_colours_index + 1800
 
@@ -541,4 +541,3 @@ outro_lz4:
 
 .p2align 8
 scene1_data_stream:
-;.incbin "data/scene1.bin"
