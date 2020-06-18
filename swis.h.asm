@@ -29,6 +29,7 @@
 .equ IKey_LeftClick, 0xf6
 .equ IKey_RightClick, 0xf4
 .equ IKey_Space, 0x9d
+.equ IKey_Escape, 0x8f
 
 .equ DynArea_Screen, 2
 
@@ -48,3 +49,4 @@
 .equ QTM_Start, 0x47E41
 .equ QTM_Stop, 0x47E42
 .equ QTM_SetSampleSpeed, 0x47E49
+.equ QTM_Pos, 0x47E46

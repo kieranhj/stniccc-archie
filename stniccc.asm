@@ -167,7 +167,7 @@ events_loop:
 
 	; exit if SPACE is pressed
 	MOV r0, #OSByte_ReadKey
-	MOV r1, #IKey_Space
+	MOV r1, #IKey_Escape
 	MOV r2, #0xff
 	SWI OS_Byte
 	
