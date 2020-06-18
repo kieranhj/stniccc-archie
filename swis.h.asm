@@ -14,7 +14,8 @@
 .equ OS_ReadMonotonicTime, 0x42
 .equ OS_ReadDynamicArea, 0x5c
 .equ OS_ConvertHex8, 0xd4
-.equ OS_ConvertCardinal4, 0xd8	
+.equ OS_ConvertCardinal1, 0xd5	
+.equ OS_ConvertCardinal4, 0xd8
 
 .equ OSByte_EventEnable, 14
 .equ OSByte_EventDisable, 13

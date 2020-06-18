@@ -142,6 +142,39 @@ main:
 	swi QTM_Start
 .endif
 
+events_loop:
+
+	; Block if we've not even had a vsync since last time - we're >50Hz!
+	ldr r1, last_vsync
+.1:
+	ldr r2, vsync_count
+	cmp r1, r2
+	beq .1
+	str r2, last_vsync
+
+	; handle any events
+	bl events_update
+
+	; do the effect update
+	adr lr, .2
+	ldr r0, update_fn_id
+	adr r1, update_fn_table
+	add pc, r1, r0, lsl #2
+	.2:
+
+	; exit if SPACE is pressed
+	MOV r0, #OSByte_ReadKey
+	MOV r1, #IKey_Space
+	MOV r2, #0xff
+	SWI OS_Byte
+	
+	CMP r1, #0xff
+	CMPEQ r2, #0xff
+	BEQ exit
+	
+	b events_loop
+	
+.if 0
 	; Display title card
 	bl swap_screens
 	adr r1, title_filename
@@ -163,6 +196,9 @@ main:
 	bl screen_cls
 
 	; Write string
+	mov r3, #15
+	mov r4, #0x00ffffff
+	bl palette_set_colour
 	adr r0, title_string
 	swi OS_WriteO
 
@@ -177,6 +213,9 @@ main:
 	ldr r8, screen_addr
 	bl swap_screens
 	bl screen_cls
+
+	mov r0, #0
+	str r0, vsync_count
 
 backwards_loop:   
 	; debug
@@ -247,6 +286,75 @@ backwards_loop:
 	B backwards_loop
 
 done_backwards_loop:
+
+	ldr r1, scr_bank			; bank we want to display next
+	str r1, buffer_pending		; we might overwrite a bank if too fast (drop a frame?)
+	ldr r1, palette_block_addr
+	str r1, palette_pending
+	; wait for vsync (any pending buffers)
+	mov r0, #19
+	swi OS_Byte
+
+	ldr r0, vsync_count
+	str r0, vsync_final
+
+	; Write string
+	bl swap_screens
+	bl window_cls
+	; Set default palette
+	mov r3, #15
+	mov r4, #0x00ffffff
+	bl palette_set_colour
+	adr r0, clock_string
+	swi OS_WriteO
+
+	ldr r6, clock_minutes
+	ldr r5, vsync_final
+	mov r5, r5, lsl #1			; vsyncs * 2 = 100 ticks per second
+	mov r3, #0
+	mov r4, #0
+.1:
+	cmp r5, r6				; minutes
+	blt .2
+	sub r5, r5, r6
+	add r3, r3, #1
+	b .1
+.2:
+	cmp r5, #100				; seconds
+	blt .3
+	sub r5, r5, #100
+	add r4, r4, #1
+	b .2
+.3:
+
+	mov r0, r3
+	adr r1, debug_string
+	mov r2, #8
+	swi OS_ConvertCardinal1
+	adr r0, debug_string
+	swi OS_WriteO
+	mov r0, #58					; ':'
+	swi OS_WriteC
+	mov r0, r4
+	adr r1, debug_string
+	mov r2, #8
+	swi OS_ConvertCardinal1
+	adr r0, debug_string
+	swi OS_WriteO
+	mov r0, #46					; '.'
+	swi OS_WriteC
+	mov r0, r5
+	adr r1, debug_string
+	mov r2, #8
+	swi OS_ConvertCardinal1
+	adr r0, debug_string
+	swi OS_WriteO
+
+	; Show screen
+	ldr r1, scr_bank
+	str r1, buffer_pending
+	; Wait 4s
+	bl wait_pause
 
 	mov r11, #0
 	str r11, frame_number
@@ -332,6 +440,7 @@ forwards_loop:
 ;	BEQ exit
 	
 	B forwards_loop
+.endif
 
 error_noscreenmem:
 	.long 0
@@ -383,7 +492,11 @@ exit:
 	; Write string
 	bl swap_screens
 	bl window_cls
+
 	; Set default palette
+	mov r3, #15
+	mov r4, #0x00ffffff
+	bl palette_set_colour
 	adr r0, outro_string
 	swi OS_WriteO
 
@@ -537,11 +650,28 @@ vsync_count:
 last_vsync:
 	.long -1
 
+vsync_final:
+	.long 0
+
 buffer_pending:
 	.long 0
 
 palette_pending:
 	.long 0
+
+clock_minutes:
+	.long 6000
+
+update_set_fn_id:
+	str r0, update_fn_id
+	mov pc, lr
+
+update_fn_id:
+	.long 1
+
+update_fn_table:
+	b do_nothing
+	b stniccc_update
 
 error_handler:
 	STMDB sp!, {r0-r2, lr}
@@ -632,200 +762,11 @@ screen_cls:
 	mov pc, lr
 
 ; ============================================================================
-; Parsing the scene1.bin data file
-; ============================================================================
-
-.equ FLAG_CLEAR_SCREEN, 0x01
-.equ FLAG_CONTAINS_PALETTE, 0x02
-.equ FLAG_INDEXED_DATA, 0x04
-
-.equ POLY_DESC_END_OF_STREAM, 0xfd
-.equ POLY_DESC_SKIP_TO_64K, 0xfe
-.equ POLY_DESC_END_OF_FRAME, 0xff
-
-; R11=ptr to frame
-; R12=screen_addr
-parse_frame:
-	stmfd sp!, {lr}
-
-	; get_byte
-	ldrb r10, [r11], #1			; r10=frame_flags
-
-	tst r10, #FLAG_CLEAR_SCREEN
-	.if _DRAW_WIREFRAME | _ALWAYS_CLS
-	bl window_cls
-	.else
-	blne window_cls
-	.endif
-
-	tst r10, #FLAG_CONTAINS_PALETTE
-	beq .1						; no_palette
-
-	; get_byte
-	ldrb r1, [r11], #1			; r1=palette_mask HI
-	; get_byte
-	ldrb r0, [r11], #1			; r0=palette_mask LO
-	mov r2, r1, lsl #24
-	orr r2, r2, r0, lsl #16		; r2 = r1 << 24 | r0 << 16
-
-	; read palette words
-	mov r5, #0					; r1 = palette loop counter
-.2:
-	movs r2, r2, asl #1
-	bcc .3
-	; just consume the palette data here.
-	; get_byte get_byte
-	ldrb r3, [r11], #2
-.3:
-	add r5, r5, #1
-	cmp r5, #16
-	blt .2
-
-.1:
-
-	tst r10, #FLAG_INDEXED_DATA
-	beq parse_frame_read_poly_data
-
-	; get_byte
-	ldrb r1, [r11], #1			; r0=num_verts
-
-	; store ptr to literal vertex data
-	mov r8, r11
-	add r9, r8, #1
-
-	; next is an array of (x,y) bytes
-
-	add r11, r11, r1, lsl #1	; skip num_verts*2 bytes
-
-parse_frame_read_poly_data:
-	; get_byte
-	ldrb r0, [r11], #1			; r0=poly_descriptor
-
-	; end of frame marker?
-	cmp r0, #POLY_DESC_END_OF_STREAM
-	bge parse_end_of_frame
-
-	; low nibble = num verts
-	and r1, r0, #0x0F			; r1=num_verts
-
-	; high nibble = palette
-	mov r4, r0, lsr #4			; r4=palette
-
-	adrl r6, polygon_list		; r6=polygon_list array
-
-	; is the data indexed?
-	tst r10, #FLAG_INDEXED_DATA
-	beq non_indexed_data
-
-	; indexed
-	mov r0, r1
-.5:
-	; read index
-	; get_byte
-	ldrb r5, [r11], #1			; r5=index
-
-	; lookup verts
-	ldrb r2, [r8, r5, lsl #1]	; r2=vertices_x[i]
-	ldrb r3, [r9, r5, lsl #1]	; r3=vertices_y[i]
-
-	; store into a temp array for now
-	stmia r6!, {r2, r3}			; *temp_poly_data++ = x
-
-	subs r1, r1, #1
-	bne .5
-	b parse_plot_poly
-
-non_indexed_data:
-	; non-indexed
-	mov r0, r1
-.6:
-	; copy (x,y) bytes directly to temp array
-	; get_byte
-	ldrb r2, [r11], #1			; r2=x
-	; get_byte
-	ldrb r3, [r11], #1			; r3=y
-
-	; store into a temp array for now
-	stmia r6!, {r2, r3}			; *temp_poly_data++ = x, y
-
-	subs r1, r1, #1
-	bne .6
-
-parse_plot_poly:
-	; store off any registers we need here!
-	stmfd sp!, {r8-r11}
-
-	; plot the polygon!
-	adrl r1, polygon_list
-	; r4=palette
-	.if _DRAW_WIREFRAME
-	bl plot_polygon_line
-	.else
-	bl plot_polygon_span
-	.endif
-	
-	; pull any registers we need here!
-	ldmfd sp!, {r8-r11}
-
-	b parse_frame_read_poly_data
-
-parse_end_of_frame:
-	; parse EOF flag
-	cmp r0, #POLY_DESC_SKIP_TO_64K
-	bne .1
-
-	; make ptr relative to 0
-	adr r1, scene1_data_stream
-	sub r11, r11, r1
-
-	; align ptr to 64K
-	; ptr += 0xffff
-	add r11, r11, #0xff
-	add r11, r11, #0xff00
-
-	; ptr AND= 0xffff0000
-	bic r11, r11, #0x000000ff
-	bic r11, r11, #0x0000ff00
-
-	; add base back to ptr
-	add r11, r11, r1
-.1:
-
-	ldmfd sp!, {lr}
-	mov pc, lr
-
-parse_frame_ptr:
-	.long scene1_data_stream
-
-frame_number:
-	.long Sequence_Total_Frames-1
-
-max_frames:
-	.long Sequence_Total_Frames
-
-forwards_count:
-	.long 0
-
-forwards_speed:
-	.long 1
-
-polygon_list:
-	.long 32, 32
-	.long 160, 32
-	.long 160, 101
-	.long 32, 111
-	.long 0, 64
-	.long 0, 0
-	.long 0, 0
-	.long 0, 0
-
-palette_block_addr:
-	.long 0
-
-; ============================================================================
 ; Additional code modules
 ; ============================================================================
 
+.include "events.asm"
+.include "parser.asm"
 .include "plot.asm"
 .include "palette.asm"
 .include "image.asm"
@@ -854,6 +795,10 @@ title_string:
 
 outro_string:
 	.byte 31,11,15,17,15,"To be continued...",0
+	.align 4
+
+clock_string:
+	.byte 31,16,15,17,15,0
 	.align 4
 
 module_filename:
