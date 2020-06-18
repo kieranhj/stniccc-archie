@@ -479,16 +479,16 @@ slide_01_pal_block:
 .incbin "build/slide_01.pal"
 
 slide_02_pal_block:
-.incbin "build/slide_01.pal"
+.incbin "build/slide_02.pal"
 
 slide_03_pal_block:
-.incbin "build/slide_01.pal"
+.incbin "build/slide_03.pal"
 
 slide_04_pal_block:
-.incbin "build/slide_01.pal"
+.incbin "build/slide_04.pal"
 
 slide_05_pal_block:
-.incbin "build/slide_01.pal"
+.incbin "build/slide_05.pal"
 
 text_blocks_table:
 	.long text_01_string-text_blocks_table
