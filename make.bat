@@ -24,7 +24,7 @@ bin\lz4.exe -f build\patarty.bin build\patarty.lz4
 bin\lz4.exe -f build\logo.bin build\logo.lz4
 
 echo Assembling code...
-..\..\vasm\vasmarm_std_win32.exe -L compile.txt -m250 -Fbin -opt-adr -o build\stniccc.bin stniccc.asm
+bin\vasmarm_std_win32.exe -L compile.txt -m250 -Fbin -opt-adr -o build\stniccc.bin stniccc.asm
 
 if %ERRORLEVEL% neq 0 (
 	echo Failed to assemble code.
