@@ -8,6 +8,7 @@
 .equ _DRAW_WIREFRAME, 0
 .equ _ENABLE_MUSIC, 1
 .equ _ALWAYS_CLS, 1
+.equ _NO_WINDOW_CLS, 1
 
 .equ Screen_Banks, 3
 .equ Screen_Mode, 9

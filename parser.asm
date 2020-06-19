@@ -6,14 +6,17 @@
 show_parser:
 	str lr, [sp, #-4]!
 
+.if _NO_WINDOW_CLS
+.else
     cmp r0, #0
     beq .1
 
 	; Wipe current (visible) screen 
 	ldr r8, screen_addr
 	bl screen_cls
-
     .1:
+.endif
+
     mov r0, #1                      ; parser_update
     str r0, update_fn_id
 	ldr pc, [sp], #4                ; rts
@@ -127,7 +130,12 @@ parse_frame:
 
 	tst r10, #FLAG_CLEAR_SCREEN
 	.if _DRAW_WIREFRAME | _ALWAYS_CLS
-	bl window_cls
+		.if _NO_WINDOW_CLS
+		ldr r8, screen_addr
+		bl screen_cls
+		.else
+		bl window_cls
+		.endif
 	.else
 	blne window_cls
 	.endif

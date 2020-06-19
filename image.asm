@@ -12,14 +12,16 @@ show_image:
     ; get a fresh screen bank
     bl get_next_screen_for_writing
 
+.if _NO_WINDOW_CLS
+.else
 	ldr r0, update_fn_id
 	cmp r0, #0					; hackz0r - assume static image
 	bne .1
-
 	; wipe prev screen first
 	bl screen_cls
-
 	.1:
+.endif
+
 	; Load image
 	adr r4, images_table
     add r3, r4, r11, lsl #3     ; 8 byte stride
