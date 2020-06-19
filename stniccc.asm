@@ -519,6 +519,8 @@ images_table:
     .long slide_20_lz4-images_table, slide_20_pal_block-images_table
     .long logo_lz4-images_table, 	 logo_pal_block-images_table
     .long patarty_lz4-images_table,	 patarty_pal_block-images_table
+    .long gangster_lz4-images_table, gangster_pal_block-images_table
+    .long credits_lz4-images_table,	 credits_pal_block-images_table
 
 title_pal_block:
 .incbin "build/title.pal"
@@ -583,11 +585,17 @@ slide_19_pal_block:
 slide_20_pal_block:
 .incbin "build/slide_20.pal"
 
+logo_pal_block:
+.incbin "build/logo.pal"
+
 patarty_pal_block:
 .incbin "build/patarty.pal"
 
-logo_pal_block:
-.incbin "build/logo.pal"
+gangster_pal_block:
+.incbin "build/gangster.pal"
+
+credits_pal_block:
+.incbin "build/credits.pal"
 
 text_blocks_table:
 	.long text_01_string-text_blocks_table
@@ -694,12 +702,20 @@ slide_20_lz4:
 .incbin "build/slide_20.lz4"
 
 .align 4
+logo_lz4:
+.incbin "build/logo.lz4"
+
+.align 4
 patarty_lz4:
 .incbin "build/patarty.lz4"
 
 .align 4
-logo_lz4:
-.incbin "build/logo.lz4"
+gangster_lz4:
+.incbin "build/gangster.lz4"
+
+.align 4
+credits_lz4:
+.incbin "build/credits.lz4"
 
 ; ============================================================================
 ; BSS Segment

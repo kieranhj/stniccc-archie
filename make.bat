@@ -28,6 +28,8 @@ python bin\png2arc.py -o build\slide_20.bin -p build\slide_20.pal data\gfx\slide
 
 python bin\png2arc.py -o build\logo.bin -p build\logo.pal data\gfx\logo_reflection06_fixed.png 9
 python bin\png2arc.py -o build\patarty.bin -p build\patarty.pal data\gfx\patarty16.png 9
+python bin\png2arc.py -o build\gangster.bin -p build\gangster.pal data\gfx\WCUT008.png 9
+python bin\png2arc.py -o build\credits.bin -p build\credits.pal data\gfx\wsm_graf_16col_v17.png 9
 
 bin\lz4.exe -f build\slide_01.bin build\slide_01.lz4
 bin\lz4.exe -f build\slide_02.bin build\slide_02.lz4
@@ -52,6 +54,8 @@ bin\lz4.exe -f build\slide_20.bin build\slide_20.lz4
 
 bin\lz4.exe -f build\logo.bin build\logo.lz4
 bin\lz4.exe -f build\patarty.bin build\patarty.lz4
+bin\lz4.exe -f build\gangster.bin build\gangster.lz4
+bin\lz4.exe -f build\credits.bin build\credits.lz4
 
 echo Assembling code...
 bin\vasmarm_std_win32.exe -L compile.txt -m250 -Fbin -opt-adr -o build\stniccc.bin stniccc.asm

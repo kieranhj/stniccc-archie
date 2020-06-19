@@ -60,7 +60,7 @@ events_ptr:
 ;   show_parser = STNICC sequence, clear screen if data = 1 (needed for restarting after image)
 ;   parser_set_frame, data = STNICCC frame no. [0-1799]
 ;   parser_set_speed, data = frame step (negative for backwards)
-;   parser_set_filter, colour if data = 0, b&w if data = 1 (STNICCC only)
+;   parser_set_filter, colour if data = 0, b&w if data = 1 (STNICCC only), white flas = 2 (STNICCC only)
 ;   show_text_block, data = text block no.
 ; ============================================================================
 
@@ -114,28 +114,28 @@ do_event 9,  0, show_parser, 1              ; STNICCC
 ;do_event 9,  32, parser_set_speed, -3       ; back
 ;do_event 9,  32, show_parser, 1             ; STNICCC
 
-do_event 9,  8,  parser_set_filter, 2
-do_event 9,  24, parser_set_filter, 2
-do_event 9,  38, parser_set_filter, 2
-do_event 9,  54, parser_set_filter, 2
+do_event 9,  8,  parser_set_filter, 2       ; flash white
+do_event 9,  24, parser_set_filter, 2       ; flash white
+do_event 9,  38, parser_set_filter, 2       ; flash white
+do_event 9,  54, parser_set_filter, 2       ; flash white
 
-do_event 11, 0,  show_image, 5              ; <placeholder>
+do_event 11, 0,  show_image, 20             ; bitshifters logo
 do_event 11, 32, parser_set_filter, 0       ; colour
 do_event 11, 32, parser_set_speed, 1        ; forwards
 do_event 11, 32, show_parser, 1             ; STNICCC
 
-do_event 13, 0,  show_image, 6              ; <placeholder>
+do_event 13, 0,  show_image, 21             ; patarty
 do_event 13, 32, parser_set_filter, 0       ; colour
 do_event 13, 32, parser_set_speed, 4        ; forwards
 do_event 13, 32, show_parser, 1             ; STNICCC
 
-do_event 14, 0,  show_image, 20             ; Bitshifters logo
+do_event 14, 0,  show_image, 22             ; gangster
 do_event 14, 32, parser_set_filter, 0       ; colour
 do_event 14, 32, parser_set_speed, 1        ; forwards
 do_event 14, 32, show_parser, 1             ; STNICCC
 
-do_event 16, 0,  show_image, 21             ; Patarty
-do_event 16, 8,  show_parser, 1             ; STNICCC
+do_event 16, 0,  show_image, 23             ; Credits
+do_event 16, 32,  show_parser, 1             ; STNICCC
 
 ; When Tracker module loops around we'll get back to pattern 0
 do_event 0,  0,  exit, 0                    ; end
@@ -146,4 +146,4 @@ do_event 0,  0,  exit, 0                    ; end
 ; Just keep adding 4 to the number below until it works! (Stupid assembler bug.)
 ; ============================================================================
 
-.skip 0
+.skip 4
