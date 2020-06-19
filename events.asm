@@ -114,6 +114,11 @@ do_event 9,  0, show_parser, 1              ; STNICCC
 ;do_event 9,  32, parser_set_speed, -3       ; back
 ;do_event 9,  32, show_parser, 1             ; STNICCC
 
+do_event 9,  8,  parser_set_filter, 2
+do_event 9,  24, parser_set_filter, 2
+do_event 9,  38, parser_set_filter, 2
+do_event 9,  54, parser_set_filter, 2
+
 do_event 11, 0,  show_image, 5              ; <placeholder>
 do_event 11, 32, parser_set_filter, 0       ; colour
 do_event 11, 32, parser_set_speed, 1        ; forwards

@@ -28,6 +28,10 @@ parser_set_frame:
 
 parser_set_filter:
     str r0, palette_filter
+	mov r0, #15
+	str r0, fade_value
+	mov r0, #1
+	str r0, fade_speed
     mov pc, lr
 
 parser_update:
@@ -55,10 +59,30 @@ parser_update:
     ldr r0, palette_filter
     cmp r0, #0
     beq .1
+	cmp r0, #2
+	beq .2
+	; b&w
     ldr r2, palette_block_addr
    	bl palette_make_greyscale
 	adr r2, palette_interp_block
 	str r2, palette_block_addr
+	b .1
+	.2:
+	; white out
+    ldr r2, palette_block_addr
+	ldr r0, fade_value
+   	bl palette_make_fade_to_white
+	adr r2, palette_interp_block
+	str r2, palette_block_addr
+	
+	ldr r1, fade_speed
+	add r0, r0, r1
+	cmp r0, #16
+	moveq r1, #-2
+	streq r1, fade_speed
+	str r0, fade_value
+	cmp r0, #0
+	streq r0, palette_filter
     .1:
 
     ; r11 contains pointer to STNICCC frame data

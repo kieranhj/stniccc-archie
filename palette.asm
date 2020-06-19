@@ -78,6 +78,30 @@ palette_make_fade_to_black:
     bne .1
 	ldr pc, [sp], #4			; rts
 
+; R0 = [0-16] interpolation
+; R2 = palette block ptr
+palette_make_fade_to_white:
+	str lr, [sp, #-4]!			; push lr on stack
+    adr r1, palette_interp_block
+
+    add r1, r1, #4              ; ignore 0
+    add r2, r2, #4              ; ignore 0
+
+    ldr r7, solid_white
+    mov r3, #15
+    .1:
+    ldr r4, [r2], #4            ; rgbx
+
+    sub r5, r7, r4              ; white - rgbx
+    mov r5, r5, lsr #4          ; (white - rgbx) / 16
+    mla r6, r5, r0, r4          ; rgbx + r0 * (white - rgbx) / 16
+
+    str r6, [r1], #4
+    
+    subs r3, r3, #1
+    bne .1
+	ldr pc, [sp], #4			; rts
+
 palette_osword_block:
     .skip 8
     ; logical colour
@@ -86,6 +110,9 @@ palette_osword_block:
     ; green
     ; blue
     ; (pad)
+
+solid_white:
+    .long 0x00f0f0f0
 
 palette_interp_block:
     .skip 64
