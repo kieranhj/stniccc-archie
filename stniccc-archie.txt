@@ -95,3 +95,68 @@ Code = 7k..
 Wimpslot = 625+146+7=
 
 Sarah says - don't expect more than 816K of usable RAM on a 1Mb machine. :(
+
+
+26/5/2020
+~~~
+If STNICCC is too passe, how about remixing it?
+Use encoder.py to spit out the offset of each frame in the sequence.
+And a palette number to use - maximum of 108 palette changes.
+Move to 2Mb and store data uncompressed as per before.
+Can then render any frame on demand, so can go forwards, backwards etc.
+Also have access to the current palette so can lerp to other colours.
+E.g. desaturate to b&w in reverse, super saturate, simulate lighting
+or disco colours etc.
+Perhaps sequence this to some new music from Rhino?
+
+Assemble the scene from the polys somehow?
+
+To B&W:
+R*0.25 + G*0.5 + B*0.25 is a fast approximation.
+r>>2 + g>>1 + b>>2
+
+Using per-frame rendering &
+Enable music with lower sample rate.
+A3000 w/ music = &1657 vsyncs (played backwards) ~= 15.7fps.
+
+Flow for NOVA compofiller
+~~~
+1. Fade up title screen
+2. Fade out
+3. Play sequence backwards in colour
+4. Fade out
+5. Show simple timer?
+6. Fade in b&w first frame
+7. Play forwards in b&w, increasing in speed
+8. White out on last frame
+9. Fade up outro card
+10. Fade out outro card
+
+TODO
+~~~
+1. Get basic flow working: screen > backwards > time > forwards inc. in speed > screen
+   => Load images from disc to save time/space - done
+2. Add screen fades
+3. Add b&w palette to fwd playback - done
+4. Load scene1.bin from disc (show that it's original data) - done
+5. Load MOD from disc - done
+6. Build process to make !folder - done
+7. Memory nonsense - compress images or meh?
+8. Polish - centre screen, timings etc.
+9. Icon, readmes etc.
+
+A3000 w/ 4ch checknobankh music = &1638 = 5688
+
+A3000 w/out music = &139c = 5020
+A3000 w/ 4ch test = &15FE = 5630 = +610
+A3000 w/ 6ch test = &17AF = 6063 = +433
+A3000 w/ 8ch test = &1952 = 6482 = +419
+
+New 'seat of the pants' plan
+~~~
+1. Ability to display images or text pages as slides at any point during the sequence
+2. Some simple way of specifying the sequence on a tracker line
+
+State of the demo.
+1. Playing the sequence, stepping N frames each update. Palette modifier optional.
+2. Displaying a static image, for N tracker lines/vsyncs. Source of static image could be text page or decompress.

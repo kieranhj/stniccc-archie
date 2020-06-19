@@ -4,6 +4,7 @@
 .equ OS_Byte, 6
 .equ XOS_Byte, OS_Byte | (1 << 17)
 .equ OS_Word, 7
+.equ XOS_Word, OS_Word | (1 << 17)
 .equ OS_File, 8
 .equ OS_Exit, 0x11
 .equ OS_BreakPt, 0x17
@@ -13,7 +14,8 @@
 .equ OS_ReadMonotonicTime, 0x42
 .equ OS_ReadDynamicArea, 0x5c
 .equ OS_ConvertHex8, 0xd4
-.equ OS_ConvertCardinal4, 0xd8	
+.equ OS_ConvertCardinal1, 0xd5	
+.equ OS_ConvertCardinal4, 0xd8
 
 .equ OSByte_EventEnable, 14
 .equ OSByte_EventDisable, 13
@@ -27,6 +29,7 @@
 .equ IKey_LeftClick, 0xf6
 .equ IKey_RightClick, 0xf4
 .equ IKey_Space, 0x9d
+.equ IKey_Escape, 0x8f
 
 .equ DynArea_Screen, 2
 
@@ -45,3 +48,5 @@
 .equ QTM_Load, 0x47E40
 .equ QTM_Start, 0x47E41
 .equ QTM_Stop, 0x47E42
+.equ QTM_SetSampleSpeed, 0x47E49
+.equ QTM_Pos, 0x47E46

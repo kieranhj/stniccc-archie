@@ -1,11 +1,13 @@
+; ============================================================================
 ; STNICCC-Archie
 ; A port of STNICCC-2000 by Oxygene for the Acorn Archimedes series
-; 
+; ============================================================================
 
 .equ _TESTS, 0
 .equ _UNROLL_SPAN, 1
 .equ _DRAW_WIREFRAME, 0
-.equ _ENABLE_MUSIC, 0
+.equ _ENABLE_MUSIC, 1
+.equ _ALWAYS_CLS, 1
 
 .equ Screen_Banks, 3
 .equ Screen_Mode, 9
@@ -18,9 +20,20 @@
 .equ Window_Stride, Screen_Width/2		; 4bpp
 .equ Window_Bytes, Window_Stride*Window_Height
 
+.equ Wait_Centisecs_lo, (400) & 0xff
+.equ Wait_Centisecs_hi, (400) >> 8
+
+.equ Screen_Offset, (Screen_Stride*(Screen_Height-Window_Height)/2)+((Screen_Width-Window_Width)/4)
+
+.equ Sequence_Total_Frames, 1800
+
 .include "swis.h.asm"
 
 .org 0x8000
+
+; ============================================================================
+; Stack
+; ============================================================================
 
 Start:
     adrl sp, stack_base
@@ -29,8 +42,12 @@ Start:
 .skip 1024
 stack_base:
 
-scr_bank:
-	.long 0
+; ============================================================================
+; Main
+; ============================================================================
+
+wtaf:
+	.skip 24
 
 main:
 	MOV r0,#22	;Set MODE
@@ -65,11 +82,21 @@ main:
 	SWI OS_WriteC
 	SWI OS_WriteC
 
+	; Load scene1.bin
+	mov r0, #0xff
+	adr r1, scene1_filename
+	adr r2, scene1_data_stream
+    mov r3, #0
+	swi OS_File
+
 .if _ENABLE_MUSIC
 	; Load module
-	mov r0, #0
-	adrl r1, module_data
+	adrl r0, module_filename
+	mov r1, #0
 	swi QTM_Load
+
+	mov r0, #48
+	swi QTM_SetSampleSpeed
 .endif
 
 	; Clear all screen buffers
@@ -102,7 +129,7 @@ main:
 	mov r0, #EventV
 	adr r1, event_handler
 	mov r2, #0
-	swi OS_Claim
+	swi OS_AddToVector
 
 	bl initialise_span_buffer
 
@@ -115,9 +142,7 @@ main:
 	swi QTM_Start
 .endif
 
-main_loop:   
-	; debug
-	bl debug_write_vsync_count
+events_loop:
 
 	; Block if we've not even had a vsync since last time - we're >50Hz!
 	ldr r1, last_vsync
@@ -127,115 +152,22 @@ main_loop:
 	beq .1
 	str r2, last_vsync
 
-	; Swap banks
-	; Display whichever bank we've just written to
-	ldr r1, scr_bank			; bank we want to display next
-	str r1, buffer_pending		; we might overwrite a bank if too fast (drop a frame?)
-	; If we have more than 3 banks then this needs to be a queue
-	; This now happens in vsync event handler
-	;	mov r0, #OSByte_WriteDisplayBank
-	;	swi OS_Byte
+	; show debug
+	bl debug_write_vsync_count
 
-	; Set the palette from the previous frame if there is one
-	ldr r9, palette_count
-	cmp r9, #0
-	beq .2
+	; handle any events
+	bl events_update
 
-	mov r0, #12
-	adrl r1, palette_block
-.3:
-	swi OS_Word
-	add r1, r1, #8
-	subs r9, r9, #1
-	bne .3
+	; do the effect update
+	adr lr, .2
+	ldr r0, update_fn_id
+	adr r1, update_fn_table
+	add pc, r1, r0, lsl #2
+	.2:
 
-	str r9, palette_count
-.2:
-
-	; Increment to next bank for writing
-	ldr r1, scr_bank
-	add r1, r1, #1
-	cmp r1, #Screen_Banks
-	movgt r1, #1
-	str r1, scr_bank
-
-	; Now set the screen bank to write to
-	mov r0, #OSByte_WriteVDUBank
-	swi OS_Byte
-
-	; Wait for vsync if double buffering
-	.if Screen_Banks <= 2
-	mov r0, #OSByte_Vsync
-	swi OS_Byte
-	.endif
-
-	; Back buffer address for writing bank stored at screen_addr
-	bl get_screen_addr
-
-	;Do stuff here!
-
-.if _TESTS
-	ldr r12, screen_addr			; R12=generic screen_addr ptr
-	add r9, r12, #Screen_Bytes
-
-	mov r2, #0
-	mov r8, #121
-	mov r7, #319
-	mov r4, #0x11
-	orr r4, r4, r4, lsl #8
-	orr r4, r4, r4, lsl #16
-
-	mov r1, r4
-	mov r2, r4
-	mov r6, r4
-
-my_test_loop:
-
-	cmp r8, r7
-	movle r0, r8
-	movle r3, r7
-	movgt r0, r7
-	movgt r3, r8
-
-	; preserve r7, r8, r9, r12
-	bl plot_span
-
-;	add r6, r6, #1
-	sub r7, r7, #1
-
-	add r12, r12, #160
-	cmp r12, r9
-	bne my_test_loop
-
-	ldr r12, screen_addr			; R12=generic screen_addr ptr
-
-	mov r0, #0
-	mov r1, #128
-my_test_points:
-	mov r4, #2
-	bl plot_pixel
-	add r0, r0, #3
-	eor r1, r1, #1
-	cmp r0, #320
-	blt my_test_points
-
-	bl initialise_span_buffer
-
-	adrl r1, test_poly_data
-	mov r0, #5
-	mov r4, #6
-	bl plot_polygon_span
-
-	b exit
-.endif
-
-	bl parse_frame
-	cmp r0, #POLY_DESC_END_OF_STREAM
-	beq exit
-
-	;Exit if SPACE is pressed
+	; exit if SPACE is pressed
 	MOV r0, #OSByte_ReadKey
-	MOV r1, #IKey_Space
+	MOV r1, #IKey_Escape
 	MOV r2, #0xff
 	SWI OS_Byte
 	
@@ -243,13 +175,23 @@ my_test_points:
 	CMPEQ r2, #0xff
 	BEQ exit
 	
-	B main_loop
+	b events_loop
 
 error_noscreenmem:
 	.long 0
 	.byte "Cannot allocate screen memory!"
 	.align 4
 	.long 0
+
+.if 0
+wait_pause:
+	; Wait 4s
+	MOV r0, #OSByte_ReadKey
+	MOV r1, #Wait_Centisecs_lo
+	MOV r2, #Wait_Centisecs_hi
+	SWI OS_Byte
+	mov pc, lr
+.endif
 
 debug_write_vsync_count:
 	mov r0, #30
@@ -284,6 +226,12 @@ exit:
 	mov r0, #19
 	swi OS_Byte
 
+.if _ENABLE_MUSIC
+	; disable music
+	mov r0, #0
+	swi QTM_Stop
+.endif
+
 	; disable vsync event
 	mov r0, #OSByte_EventDisable
 	mov r1, #Event_VSync
@@ -298,6 +246,8 @@ exit:
 	; release our error handler
 	mov r0, #ErrorV
 	adr r1, error_handler
+	mov r2, #0
+	swi OS_Release
 
 	; Display whichever bank we've just written to
 	mov r0, #OSByte_WriteDisplayBank
@@ -307,9 +257,6 @@ exit:
 	mov r0, #OSByte_WriteVDUBank
 	ldr r1, scr_bank
 	swi OS_Byte
-
-	; Show our final frame count
-	bl debug_write_vsync_count
 
 	SWI OS_Exit
 
@@ -343,11 +290,46 @@ event_handler:
 	MOV r0,r0
 	STR lr, [sp, #-4]!
 	SWI XOS_Byte
+
+	; set full palette if there is a pending palette block
+	ldr r2, palette_pending
+	cmp r2, #0
+	beq .4
+
+    adr r1, palette_osword_block
+    mov r0, #16
+    strb r0, [r1, #1]       ; physical colour
+
+    mov r3, #0
+    .3:
+    strb r3, [r1, #0]       ; logical colour
+
+    ldr r4, [r2], #4        ; rgbx
+    and r0, r4, #0xff
+    strb r0, [r1, #2]       ; red
+    mov r0, r4, lsr #8
+    strb r0, [r1, #3]       ; green
+    mov r0, r4, lsr #16
+    strb r0, [r1, #4]       ; blue
+    mov r0, #12
+    swi XOS_Word
+
+    add r3, r3, #1
+    cmp r3, #16
+    blt .3
+
+	mov r0, #0
+	str r0, palette_pending
+.4:
+
 	LDR lr, [sp], #4
 	TEQP r9, #0    ;Restore old mode
 	MOV r0, r0
 	LDMIA sp!, {r2-r12}
 	LDMIA sp!, {r0-r1, pc}
+
+scr_bank:
+	.long 0
 
 vsync_count:
 	.long 0
@@ -355,8 +337,21 @@ vsync_count:
 last_vsync:
 	.long -1
 
+vsync_final:
+	.long 0
+
 buffer_pending:
 	.long 0
+
+palette_pending:
+	.long 0
+
+update_fn_id:
+	.long 1
+
+update_fn_table:
+	b do_nothing
+	b parser_update
 
 error_handler:
 	STMDB sp!, {r0-r2, lr}
@@ -377,11 +372,35 @@ error_handler:
 	LDMIA sp!, {r0-r2, lr}
 	MOVS pc, lr
 
+show_screen_at_vsync:
+	; Show current bank at next vsync
+	ldr r1, scr_bank
+	str r1, buffer_pending
+	; Including its associated palette
+	ldr r1, palette_block_addr
+	str r1, palette_pending
+	mov pc, lr
+
+get_next_screen_for_writing:
+	; Increment to next bank for writing
+	ldr r1, scr_bank
+	add r1, r1, #1
+	cmp r1, #Screen_Banks
+	movgt r1, #1
+	str r1, scr_bank
+
+	; Now set the screen bank to write to
+	mov r0, #OSByte_WriteVDUBank
+	swi OS_Byte
+
+	; Back buffer address for writing bank stored at screen_addr
+	b get_screen_addr
+
 ; R12=screen_addr, trashes r7, r8, r9
 window_cls:
 	ldr r8, screen_addr
+	add r8, r8, #Screen_Offset
 	add r9, r8, #Window_Bytes
-
 	mov r0, #0
 	mov r1, #0
 	mov r2, #0
@@ -403,786 +422,105 @@ window_cls:
 	add r8, r8, #32
 	cmp r8, r9
 	blt .1
-
 	mov pc, lr
 
-.equ FLAG_CLEAR_SCREEN, 0x01
-.equ FLAG_CONTAINS_PALETTE, 0x02
-.equ FLAG_INDEXED_DATA, 0x04
-
-.equ POLY_DESC_END_OF_STREAM, 0xfd
-.equ POLY_DESC_SKIP_TO_64K, 0xfe
-.equ POLY_DESC_END_OF_FRAME, 0xff
-
-; R12=screen_addr
-parse_frame:
-	stmfd sp!, {lr}
-
-	ldr r11, parse_frame_ptr
-
-	; get_byte
-	ldrb r10, [r11], #1			; r10=frame_flags
-
-	tst r10, #FLAG_CLEAR_SCREEN
-	.if _DRAW_WIREFRAME
-	bl window_cls
-	.else
-	blne window_cls
-	.endif
-
-	tst r10, #FLAG_CONTAINS_PALETTE
-	beq .1						; no_palette
-
-	; get_byte
-	ldrb r1, [r11], #1			; r1=palette_mask HI
-	; get_byte
-	ldrb r0, [r11], #1			; r0=palette_mask LO
-	mov r2, r1, lsl #24
-	orr r2, r2, r0, lsl #16		; r2 = r1 << 24 | r0 << 16
-
-	mov r6, #0					; r6 = palette_count
-	adrl r7, palette_block		; r7 = &palette_block
-
-	; read palette words
-	mov r5, #0					; r1 = palette loop counter
-.2:
-	movs r2, r2, asl #1
-	bcc .3
-
-	; get_byte
-	ldrb r3, [r11], #1			; r3 = xxxxrrrr
-	; get_byte
-	ldrb r4, [r11], #1			; r4 = ggggbbbb
-
-	strb r5, [r7], #1			; logical colour
-	mov r0, #16
-	strb r0, [r7], #1			; physical colour
-
-	mov r0, r3, lsl #5
-	orr r0, r0, #0x10
-	strb r0, [r7], #1			; red component
-
-	and r0, r4, #0x70
-	mov r0, r0, lsl #1
-	orr r0, r0, #0x10
-	strb r0, [r7], #1			; green component
-
-	mov r0, r4, lsl #5
-	orr r0, r0, #0x10
-	strb r0, [r7], #1+3			; blue component
-
-	add r6, r6, #1				; palette_count++
-
-.3:
-	add r5, r5, #1
-	cmp r5, #16
-	blt .2
-
-	str r6, palette_count
-
-.1:
-
-	tst r10, #FLAG_INDEXED_DATA
-	beq parse_frame_read_poly_data
-
-	; get_byte
-	ldrb r1, [r11], #1			; r0=num_verts
-
-	; store ptr to literal vertex data
-	mov r8, r11
-	add r9, r8, #1
-
-	; next is an array of (x,y) bytes
-
-	add r11, r11, r1, lsl #1	; skip num_verts*2 bytes
-
-parse_frame_read_poly_data:
-
-	; get_byte
-	ldrb r0, [r11], #1			; r0=poly_descriptor
-
-	; end of frame marker?
-	cmp r0, #POLY_DESC_END_OF_STREAM
-	bge parse_end_of_frame
-
-	; low nibble = num verts
-	and r1, r0, #0x0F			; r1=num_verts
-
-	; high nibble = palette
-	mov r4, r0, lsr #4			; r4=palette
-
-	adrl r6, test_poly_data		; r6=test_poly_data array
-
-	; is the data indexed?
-	tst r10, #FLAG_INDEXED_DATA
-	beq non_indexed_data
-
-	; indexed
-	mov r0, r1
-.5:
-	; read index
-	; get_byte
-	ldrb r5, [r11], #1			; r5=index
-
-	; lookup verts
-	ldrb r2, [r8, r5, lsl #1]	; r2=vertices_x[i]
-	ldrb r3, [r9, r5, lsl #1]	; r3=vertices_y[i]
-
-	; store into a temp array for now
-	stmia r6!, {r2, r3}			; *temp_poly_data++ = x
-
-	subs r1, r1, #1
-	bne .5
-	b parse_plot_poly
-
-non_indexed_data:
-
-	; non-indexed
-	mov r0, r1
-.6:
-	; copy (x,y) bytes directly to temp array
-	; get_byte
-	ldrb r2, [r11], #1			; r2=x
-	; get_byte
-	ldrb r3, [r11], #1			; r3=y
-
-	; store into a temp array for now
-	stmia r6!, {r2, r3}			; *temp_poly_data++ = x, y
-
-	subs r1, r1, #1
-	bne .6
-
-parse_plot_poly:
-
-	; store off any registers we need here!
-	stmfd sp!, {r8-r11}
-
-	; plot the polygon!
-	adrl r1, test_poly_data
-	; r4=palette
-	.if _DRAW_WIREFRAME
-	bl plot_polygon_line
-	.else
-	bl plot_polygon_span
-	.endif
-	
-	; pull any registers we need here!
-	ldmfd sp!, {r8-r11}
-
-	b parse_frame_read_poly_data
-
-parse_end_of_frame:
-
-	; parse EOF flag
-	cmp r0, #POLY_DESC_SKIP_TO_64K
-	bne .1
-
-	; make ptr relative to 0
-	adr r1, scene1_data_stream
-	sub r11, r11, r1
-
-	; align ptr to 64K
-	; ptr += 0xffff
-	add r11, r11, #0xff
-	add r11, r11, #0xff00
-
-	; ptr AND= 0xffff0000
-	bic r11, r11, #0x000000ff
-	bic r11, r11, #0x0000ff00
-
-	; add base back to ptr
-	add r11, r11, r1
-.1:
-	str r11, parse_frame_ptr
-
-	ldmfd sp!, {lr}
-	mov pc, lr
-
-parse_frame_ptr:
-	.long scene1_data_stream
-
-
-; reserved r15, r14, r13
-; preserve r7, r8, r9, r12
-; passed in r0, r3, r4
-; R0=x_start, R3=x_end/width, r4=colour, R12=screen_addr for line
-
-; free r1, r2, r5, r6, r10, r11
-; r10=writeptr, r5=readptr, r11=temp
-; would like 4x colour registers! r4 + r1, r2, r6
-
-; no longer handles x_end < x_start!!
-plot_span:
-
-	; ptr = screen_addr + y * screen_stride + x_start DIV 2
-	add r10, r12, r0, lsr #1	; r10 += startx DIV 2
-
-	sub r3, r3, r0				; r3 = x_end - x_start = x_width
-	add r3, r3, #1				; always plot at least one pixel
-
-	cmp r3, #9
-	ble plot_short_span
-
-	ands r0, r0, #7				; r0=pixel offset [0-7]
-	beq .1						; already aligned
-
-	; align to word
-	bic r10, r10, #3			; nearest word
-	rsb r0, r0, #8				; number of pixels to mask in
-	sub r3, r3, r0				; width -= number pixels plotted in start word
-
-	; find table
-	adrl r5, start_word_pixel_masks - 4
-
-	; read mask word 0
-	ldr r11, [r5, r0, lsl #2]	; r11 = start_word_pixel_masks[pixels to plot * 4]
-	ldr r5, [r10]				; r5 = screen word
-	bic r5, r5, r11				; mask screen word
-	and r11, r4, r11			; mask colour word
-	orr r5, r5, r11				; mask together
-	str r5, [r10], #4			; store back to screen
-
-.1:
-	; plot word at a time
-	movs r5, r3, lsr #3			; each word = 8 pixels so word count = width/8
-	beq plot_span_last_word		; if width = 10, pixel offset = 1, then will get here with 3 pixels left
-
-	sub r3, r3, r5, lsl #3		; width -= words * 8
-
-.if _UNROLL_SPAN
-	adrl r11, span_jump_table - 4
-	add r11, r11, r5, lsl #2
-	mov pc, r11
-	return_here_from_jump:
-.else
-	; plot words
-	; max 40 words
-.4:
-	str r4, [r10], #4			; write 8 pixels (one word) to screen, post index
-	subs r5, r5, #1				; decrement word count
-	bne .4
-.endif
-
-	; handle remaining word
-plot_span_last_word:
-	cmp r3, #0
-	moveq pc, lr				; rts
-
-	; find table
-	adrl r5, short_pixel_1 - 64
-
-	; read mask word 0
-	ldr r11, [r5, r3, lsl #6]	; r11 = start_word_pixel_masks[pixels to plot * 4]
-	ldr r5, [r10]				; r5 = screen word
-	bic r5, r5, r11				; mask screen word
-	and r11, r4, r11			; mask colour word
-	orr r5, r5, r11				; mask together
-	str r5, [r10], #4			; store back to screen
-
-	; return
-	mov pc, lr					; rts
-
-initialise_span_buffer:
+; trashes r0-r9
+screen_cls:
+	add r9, r8, #Screen_Bytes
 	mov r0, #0
-	str r0, span_buffer_max_y
-	mov r1, #256
-	str r1, span_buffer_min_y
-
+	mov r1, #0
 	mov r2, #0
-	adrl r3, span_buffer_start
-	adrl r4, span_buffer_end
+	mov r3, #0
+	mov r4, #0
+	mov r5, #0
+	mov r6, #0
+	mov r7, #0
 .1:
-	str r1, [r3, r2, lsl #2]			; span_buffer_start[y] = 256
-	str r0, [r4, r2, lsl #2]			; span_buffer_end[y] = 0
-
-	add r2, r2, #1
-	cmp r2, #256
+	stmia r8!, {r0-r7}
+	stmia r8!, {r0-r7}
+	stmia r8!, {r0-r7}
+	stmia r8!, {r0-r7}
+	stmia r8!, {r0-r7}
+	stmia r8!, {r0-r7}
+	stmia r8!, {r0-r7}
+	stmia r8!, {r0-r7}
+	stmia r8!, {r0-r7}
+	stmia r8!, {r0-r7}
+	cmp r8, r9
 	blt .1
 	mov pc, lr
 
-.if 1
-; passed in R0=startx, R1=starty, R2=endx, R3=endy
-; used R5=dx, R6=dy, R7=sx, R8=sy, R9=err, R10=e2/addr/temp
-; preserve: R11=span_buffer_start, R12=span_buffer_end, R4=poly ptr
-drawline_into_span_buffer:
-
-	ldr r5, span_buffer_min_y
-	cmp r1, r5					; starty < min_y?
-	strlt r1, span_buffer_min_y	; min_y = starty
-
-	ldr r5, span_buffer_max_y
-	cmp r1, r5					; starty > max_y?
-	strgt r1, span_buffer_max_y	; max_y = starty
-
-	subs r5, r2, r0				; r5 = dx = endx - startx
-	rsblt r5, r5, #0			; r5 = abs(dx)
-	movge r7, #1				; r8 = sy = 1
-	movlt r7, #-1				; r8 = sy = -1
-
-	subs r6, r3, r1				; r6 = dy = endy - starty
-	rsbgt r6, r6, #0			; r6 = -abs(dy)
-	movge r8, #1				; r8 = sy = 1
-	movlt r8, #-1				; r8 = sy = -1
-
-	add r9, r5, r6				; r9 = dx + dy = err
-
-.1:
-	; Only really need to update the span extents when changing to a new line
-	ldr r10, [r11, r1, lsl #2]	; span_buffer_start[y]
-	cmp r0, r10					; x < span_buffer_start[y]?
-	strlt r0, [r11, r1, lsl #2]	; span_buffer_start[y] = x
-
-	ldr r10, [r12, r1, lsl #2]	; span_buffer_end[y]
-	cmp r0, r10					; x > span_buffer_start[y]?
-	strgt r0, [r12, r1, lsl #2]	; span_buffer_end[y] = x
-
-	cmp r0, r2					; x0 == x1?
-	cmpeq r1, r3				; y0 == y1?
-	moveq pc, lr				; rts
-
-	mov r10, r9, lsl #1			; r10 = err * 2
-	cmp r10, r6					; e2 >= dy?
-	addge r9, r9, r6			; err += dy
-	addge r0, r0, r7			; x0 += sx
-
-	cmp r10, r5					; e2 <= dx?
-	addle r9, r9, r5			; err += dx
-	addle r1, r1, r8			; y0 += sy
-
-	b .1
-.else
-; passed in R0=startx, R1=starty, R2=endx, R3=endy
-; used R5=dx, R6=dy, R7=sx, R8=sy, R9=err, R10=e2/addr/temp
-; preserve: R11=span_buffer_start, R12=span_buffer_end, R4=poly ptr
-drawline_into_span_buffer:
-	ldr r5, span_buffer_min_y
-	cmp r1, r5					; starty < min_y?
-	strlt r1, span_buffer_min_y	; min_y = starty
-
-	ldr r5, span_buffer_max_y
-	cmp r1, r5					; starty > max_y?
-	strgt r1, span_buffer_max_y	; max_y = starty
-
-	sub r5, r2, r0				; r5 = dx = endx - startx
-	subs r6, r3, r1				; r6 = dy = endy - starty
-	; need to deal with sign of dy somehow?
-	rsblt r6, r6, #0			; r6 = abs(dy)
-	; table is inclusive [1-256]
-
-	adr r10, division_table
-	ldr r7, [r10, r6, lsl #2]	; r7 = division_table[dy * 4]
-	mul r8, r5, r7				; r8 = dx * 1/dy => result << 16
-
-	; foreach y step by r8
-	mov r0, r0, lsl #16
-.1:
-	mov r2, r0, lsr #16
-
-	; plot_pixel HERE!
-	ldr r10, [r11, r1, lsl #2]	; span_buffer_start[y]
-	cmp r2, r10					; x < span_buffer_start[y]?
-	strlt r2, [r11, r1, lsl #2]	; span_buffer_start[y] = x
-
-	ldr r10, [r12, r1, lsl #2]	; span_buffer_end[y]
-	cmp r0, r10					; x > span_buffer_start[y]?
-	strgt r2, [r12, r1, lsl #2]	; span_buffer_end[y] = x
-
-	; check for end y
-	cmp r1, r3
-	moveq pc, lr
-
-	; increment by dx/dy
-	add r0, r0, r8
-	add r1, r1, #1
-	b .1
-
-division_table:
-.set divisor, 1
-.rept 256
-	.long 65536 / divisor
-	.set divisor, divisor + 1
-.endr
-.endif
-
-; R0=num verts, R1=buffer of vertices (x,y) as words, R4=colour
-plot_polygon_span:
-	str lr, [sp, #-4]!			; push lr on stack
-	str r4, plot_polygon_colour
-	mov r4, r1					; TODO
-
-	; Set up pointers to span buffers for line draw
-	adrl r11, span_buffer_start
-	adrl r12, span_buffer_end
-
-	; Store first vertex for reuse as last vertex
-	ldmia r4, {r2-r3}
-	str r2, plot_polygon_x0
-	str r3, plot_polygon_y0
-
-	sub r0, r0, #1
-.1:
-	str r0, plot_polygon_num_verts
-
-	ldmia r4, {r0-r3}			; load 4 registers x0, y0, x1, y1 but don't update ptr
-	add r4, r4, #8				; update pointer to x1
-
-	bl drawline_into_span_buffer
-
-	ldr r0, plot_polygon_num_verts
-	subs r0, r0, #1
-	bne .1
-
-	; Double up the first/last vertex for plotting
-	ldmia r4, {r0-r1}			; load 4 registers x0, y0
-	ldr r2, plot_polygon_x0
-	ldr r3, plot_polygon_y0
-
-	bl drawline_into_span_buffer
-
-	; Set up our span buffer pointers
-	ldr r2, span_buffer_min_y	; r2 = span_buffer_min_y
-	ldr r7, span_buffer_max_y	; r7 = span_buffer_max_y
-
-	; r11=span_buffer_start, r12=span_buffer_end
-	add r7, r11, r7, lsl #2		; r7 = &span_buffer_start[span_buffer_max_y]
-	add r9, r11, r2, lsl #2		; r9 = &span_buffer_start[span_buffer_min_y]
-	add r8, r12, r2, lsl #2		; r8 = &span_buffer_end[span_buffer_min_y]
-
-	; Set up our screen buffer pointer
-	ldr r12, screen_addr		; R12=generic screen_addr ptr
-	add r12, r12, r2, lsl #7	; r10 = screen_addr + starty * 128
-	add r12, r12, r2, lsl #5	; r10 += starty * 32 = starty * 160
-
-	; Turn our polygon colour value into 4x words
-	ldr r4, plot_polygon_colour
-	orr r4, r4, r4, lsl #4		; r4 = colour | colour << 4
-	orr r4, r4, r4, lsl #8		; r4 = 2 bytes
-	orr r4, r4, r4, lsl #16		; r4 = 4 bytes
-
-	mov r1, r4
-	mov r2, r4
-	mov r6, r4
-
-.span_loop:
-	ldr r0, [r9]				; r0 = span_buffer_start[y]
-	ldr r3, [r8]				; r1 = span_buffer_end[y]
-
-	; reserved r15, r14, r13
-	; preserve r7, r8, r9, r12
-	; passed in r0, r3, r4
-	; free r1, r2, r5, r6, r10, r11
-	bl plot_span
-	add r12, r12, #Screen_Stride	; move ptr to start address of next line
-
-	; reset the span buffer
-	mov r5, #256
-	str r5, [r9], #4			; span_buffer_start[y] = 256
-	mov r11, #0
-	str r11, [r8], #4			; span_buffer_end[y] = 0
-
-	cmp r9, r7					; y <= max_y?
-	ble .span_loop
-
-	; reset the span limits
-	str r5, span_buffer_min_y
-	str r11, span_buffer_max_y
-
-	ldr pc, [sp], #4			; rts
-
-; R0=num verts, R1=buffer of vertices (x,y) as words, R4=colour, R12=screen_addr
-plot_polygon_line:
-
-	str lr, [sp, #-4]!			; push lr on stack
-	str r1, plot_polygon_ptr
-
-	ldr r12, screen_addr
-
-	ldmia r1, {r2-r3}
-	str r2, plot_polygon_x0
-	str r3, plot_polygon_y0
-
-	sub r0, r0, #1
-.1:
-	str r0, plot_polygon_num_verts
-
-	ldr r10, plot_polygon_ptr
-	ldmia r10, {r0-r3}			; load 4 registers x0, y0, x1, y1 but don't update ptr
-	add r10, r10, #8			; update pointer to x1
-	str r10, plot_polygon_ptr
-
-	bl drawline
-
-	ldr r0, plot_polygon_num_verts
-	subs r0, r0, #1
-	bne .1
-
-	; Double up the first/last vertex for plotting
-	ldr r10, plot_polygon_ptr
-	ldmia r10, {r0-r1}			; load 4 registers x0, y0
-	ldr r2, plot_polygon_x0
-	ldr r3, plot_polygon_y0
-
-	bl drawline
-
-	ldr pc, [sp], #4			; rts
-
-plot_polygon_ptr:
-	.long 0
-plot_polygon_num_verts:
-	.long 0
-plot_polygon_x0:
-	.long 0
-plot_polygon_y0:
-	.long 0
-plot_polygon_colour:
-	.long 0
-
-; R0=startx, R1=starty, R2=endx, R3=endy, R4=colour, R12=screen_addr
-drawline:
-
-	str lr, [sp, #-4]!			; push lr on stack
-
-	subs r5, r2, r0				; r5 = dx = endx - startx
-	rsblt r5, r5, #0			; r5 = abs(dx)
-
-	cmp r0,r2					; startx < endx?
-	movlt r7, #1				; r7 = sx = 1
-	movge r7, #-1				; r7 = sx = -1
-
-	subs r6, r3, r1				; r6 = dy = endy - starty
-	rsblt r6, r6, #0			; r6 = abs(dy)
-	rsb r6, r6, #0				; r6 = -abs(dy)
-
-	cmp r1, r3					; starty < endy?
-	movlt r8, #1				; r8 = sy = 1
-	movge r8, #-1				; r8 = sy = -1
-
-	add r9, r5, r6				; r9 = dx + dy = err
-
-.1:
-
-	cmp r0, r2					; x0 == x1?
-	cmpeq r1, r3				; y0 == y1?
-	ldreq pc, [sp], #4			; rts
-
-	; there will be faster line plot algorithms by keeping track of
-	; screen pointer then flushing a byte or word when moving to next row
-	bl plot_pixel
-
-	mov r10, r9, lsl #1			; r10 = err * 2
-	cmp r10, r6					; e2 >= dy?
-	addge r9, r9, r6			; err += dy
-	addge r0, r0, r7			; x0 += sx
-
-	cmp r10, r5					; e2 <= dx?
-	addle r9, r9, r5			; err += dx
-	addle r1, r1, r8			; y0 += sy
-
-	b .1
-
-; R0=x, R1=y, R4=colour, R12=screen_addr, trashes r10, r11
-plot_pixel:
-	; ptr = screen_addr + starty * screen_stride + startx DIV 2
-	add r10, r12, r1, lsl #7	; r10 = screen_addr + starty * 128
-	add r10, r10, r1, lsl #5	; r10 += starty * 32 = starty * 160
-	add r10, r10, r0, lsr #1	; r10 += startx DIV 2
-
-	ldrb r11, [r10]				; load screen byte
-
-	tst r0, #1					; odd or even pixel?
-	andeq r11, r11, #0xF0		; mask out left hand pixel
-	orreq r11, r11, r4			; mask in colour as left hand pixel
-
-	andne r11, r11, #0x0F		; mask out right hand pixel
-	orrne r11, r11, r4, lsl #4	; mask in colour as right hand pixel
-
-	strb r11, [r10]				; store screen byte
-	mov pc, lr
-
-; One pixel:
-short_pixel_1:
-; Offset                      0                       1                       2                       3
-.long    0x0000000F, 0x00000000, 0x000000F0, 0x00000000, 0x00000F00, 0x00000000, 0x0000F000, 0x00000000
-;                             4                       5                       6                       7
-.long	 0x000F0000, 0x00000000, 0x00F00000, 0x00000000, 0x0F000000, 0x00000000, 0xF0000000, 0x00000000
-
-short_pixel_2:
-; Offset                      0                       1                       2                       3
-.long    0x000000FF, 0x00000000, 0x00000FF0, 0x00000000, 0x0000FF00, 0x00000000, 0x000FF000, 0x00000000
-;                             4                       5                       6                       7
-.long	 0x00FF0000, 0x00000000, 0x0FF00000, 0x00000000, 0xFF000000, 0x00000000, 0xF0000000, 0x0000000F
-
-short_pixel_3:
-; Offset                      0                       1                       2                       3
-.long    0x00000FFF, 0x00000000, 0x0000FFF0, 0x00000000, 0x000FFF00, 0x00000000, 0x00FFF000, 0x00000000
-;                             4                       5                       6                       7
-.long	 0x0FFF0000, 0x00000000, 0xFFF00000, 0x00000000, 0xFF000000, 0x0000000F, 0xF0000000, 0x000000FF
-
-short_pixel_4:
-; Offset                      0                       1                       2                       3
-.long    0x0000FFFF, 0x00000000, 0x000FFFF0, 0x00000000, 0x00FFFF00, 0x00000000, 0x0FFFF000, 0x00000000
-;                             4                       5                       6                       7
-.long	 0xFFFF0000, 0x00000000, 0xFFF00000, 0x0000000F, 0xFF000000, 0x000000FF, 0xF0000000, 0x00000FFF
-
-short_pixel_5:
-; Offset                      0                       1                       2                       3
-.long    0x000FFFFF, 0x00000000, 0x00FFFFF0, 0x00000000, 0x0FFFFF00, 0x00000000, 0xFFFFF000, 0x00000000
-;                             4                       5                       6                       7
-.long	 0xFFFF0000, 0x0000000F, 0xFFF00000, 0x000000FF, 0xFF000000, 0x00000FFF, 0xF0000000, 0x0000FFFF
-
-short_pixel_6:
-; Offset                      0                       1                       2                       3
-.long    0x00FFFFFF, 0x00000000, 0x0FFFFFF0, 0x00000000, 0xFFFFFF00, 0x00000000, 0xFFFFF000, 0x0000000F
-;                             4                       5                       6                       7
-.long	 0xFFFF0000, 0x000000FF, 0xFFF00000, 0x00000FFF, 0xFF000000, 0x0000FFFF, 0xF0000000, 0x000FFFFF
-
-short_pixel_7:
-; Offset                      0                       1                       2                       3
-.long    0x0FFFFFFF, 0x00000000, 0xFFFFFFF0, 0x00000000, 0xFFFFFF00, 0x0000000F, 0xFFFFF000, 0x000000FF
-;                             4                       5                       6                       7
-.long	 0xFFFF0000, 0x00000FFF, 0xFFF00000, 0x0000FFFF, 0xFF000000, 0x000FFFFF, 0xF0000000, 0x00FFFFFF
-
-short_pixel_8:
-; Offset                      0                       1                       2                       3
-.long    0xFFFFFFFF, 0x00000000, 0xFFFFFFF0, 0x0000000F, 0xFFFFFF00, 0x000000FF, 0xFFFFF000, 0x00000FFF
-;                             4                       5                       6                       7
-.long	 0xFFFF0000, 0x0000FFFF, 0xFFF00000, 0x000FFFFF, 0xFF000000, 0x00FFFFFF, 0xF0000000, 0x0FFFFFFF
-
-short_pixel_9:
-; Offset                      0                       1                       2                       3
-.long    0xFFFFFFFF, 0x0000000F, 0xFFFFFFF0, 0x000000FF, 0xFFFFFF00, 0x00000FFF, 0xFFFFF000, 0x0000FFFF
-;                             4                       5                       6                       7
-.long	 0xFFFF0000, 0x000FFFFF, 0xFFF00000, 0x00FFFFFF, 0xFF000000, 0x0FFFFFFF, 0xF0000000, 0xFFFFFFFF
-
-start_word_pixel_masks:
-; Offset 0 display last N pixels of word
-.long 	 0xF0000000, 0xFF000000, 0xFFF00000, 0xFFFF0000, 0xFFFFF000, 0xFFFFFF00, 0xFFFFFFF0
-
-; In two words we can plot up to 9 pixels w/ shift of 7 pixels
-; R0=xstart, R3=width, R4=colour, R12=screen line address
-; R5=temp, R11=temp, R10=writeptr
-; preserves r7, r8, r9
-; colour r1, r2, r4, r6
-plot_short_span:
-
-	bic r10, r10, #3			; nearest word
-	and r0, r0, #7				; r0=pixel offset [0-7]
-
-	; find table
-	adrl r5, short_pixel_1 - 64
-	add r5, r5, r3, lsl #6		; r5 = short_pixel_1 + width * 16 * 4
-	add r5, r5, r0, lsl #3		; r5 = short_pixel_W + pixel_offset * 8
-
-	; read mask word 0
-	ldr r11, [r5], #4			; r11 = *short_pixel_W_offset++
-	ldr r3, [r10]				; r3 = screen word
-	bic r3, r3, r11				; mask screen word
-	and r0, r4, r11				; mask colour word
-	orr r3, r3, r0				; mask together
-	str r3, [r10], #4			; store back to screen
-
-	; read mask word 1
-	ldr r11, [r5], #4			; r11 = *short_pixel_W_offset++
-	cmp r11, #0					; early out for blank mask
-	moveq pc, lr
-	ldr r3, [r10]				; r3 = screen word
-	bic r3, r3, r11				; mask screen word
-	and r0, r4, r11				; mask colour word
-	orr r3, r3, r0				; mask together
-	str r3, [r10], #4			; store back to screen
-
-	mov pc, lr
-
-; colour stored in r1, r2, r4, r6
-.macro plot_span_X num_pixels
-
-plot_span_\num_pixels:
-
-	.set fours, (\num_pixels / 4)
-	.rept fours
-	stmia r10!, {r1, r2, r4, r6}		; 4x words
-	.endr
-
-	.set words, (\num_pixels - fours * 4)
-	.if words == 1
-	str r4, [r10], #4					; 1x word
-	.endif
-
-	.if words == 2
-	stmia r10!, {r1, r4}				; 2x words
-	.endif
-
-	.if words == 3
-	stmia r10!, {r1, r2, r4}			; 3x words
-	.endif
-
-	b return_here_from_jump
-.endm
-
-.if _UNROLL_SPAN
-
-.irp my_width, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
-plot_span_X \my_width
-.endr
-.irp my_width, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20
-plot_span_X \my_width
-.endr
-.irp my_width, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30
-plot_span_X \my_width
-.endr
-.irp my_width, 31, 32
-plot_span_X \my_width
-.endr
-
-;.irp my_width, 33, 34, 35, 36, 37, 38, 39, 40
-;plot_span_X \my_width
-;.endr
-
-b return_here_from_jump	; in case this gets called with 0
-; This is relocatable but could be changed to .long plot_span_\my_width
-span_jump_table:
-	.irp my_width, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
-	b plot_span_\my_width
-	.endr
-	.irp my_width, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20
-	b plot_span_\my_width
-	.endr
-	.irp my_width, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30
-	b plot_span_\my_width
-	.endr
-	.irp my_width, 31, 32
-	b plot_span_\my_width
-	.endr
-;	.irp my_width, 33, 34, 35, 36, 37, 38, 39, 40
-;	b plot_span_\my_width
-;	.endr
-.endif
-
-test_poly_data:
-
-	.long 32, 32
-	.long 160, 32
-	.long 160, 101
-	.long 32, 111
-	.long 0, 64
-	.long 0, 0
-	.long 0, 0
-	.long 0, 0
-
-palette_count:
-	.long 0
-
-palette_block:
-	.skip 8*16
-
-span_buffer_min_y:
-	.long 0
-span_buffer_max_y:
-	.long 0
+; ============================================================================
+; Additional code modules
+; ============================================================================
+
+.include "events.asm"
+.include "parser.asm"
+.include "palette.asm"
+.include "image.asm"
+.include "plot.asm"
+.include "lz4-decode.asm"
+
+; ============================================================================
+; Assets and data
+; ============================================================================
+
+images_table:
+    .long slide_01_lz4-images_table, slide_01_pal_block-images_table
+    .long slide_02_lz4-images_table, slide_02_pal_block-images_table
+    .long slide_03_lz4-images_table, slide_03_pal_block-images_table
+    .long slide_04_lz4-images_table, slide_04_pal_block-images_table
+    .long slide_05_lz4-images_table, slide_05_pal_block-images_table
+    .long patarty_lz4-images_table,	 patarty_pal_block-images_table
+    .long logo_lz4-images_table, 	 logo_pal_block-images_table
+
+title_pal_block:
+.incbin "build/title.pal"
+
+slide_01_pal_block:
+.incbin "build/slide_01.pal"
+
+slide_02_pal_block:
+.incbin "build/slide_02.pal"
+
+slide_03_pal_block:
+.incbin "build/slide_03.pal"
+
+slide_04_pal_block:
+.incbin "build/slide_04.pal"
+
+slide_05_pal_block:
+.incbin "build/slide_05.pal"
+
+patarty_pal_block:
+.incbin "build/patarty.pal"
+
+logo_pal_block:
+.incbin "build/logo.pal"
+
+text_blocks_table:
+	.long text_01_string-text_blocks_table
+	.long text_02_string-text_blocks_table
+
+text_01_string:
+	.byte 31,15,15,17,15,"Not again?",0
+	.align 4
+
+text_02_string:
+	.byte 31,14,15,17,15,"A demo by...",0
+	.align 4
+
+scene1_filename:
+	.byte "<Demo$Dir>.Scene1",0
+	.align 4
 
 module_filename:
-	.byte "checknobankh"
-	.byte 0
+	.byte "<Demo$Dir>.Music",0
+	.align 4
+
+; ============================================================================
+; BSS Segment
+; ============================================================================
 
 .p2align 8
 span_buffer_start:
@@ -1192,11 +530,49 @@ span_buffer_start:
 span_buffer_end:
 	.skip 1024,0 
 
-scene1_data_stream:
-.incbin "data/scene1.bin"
+; ============================================================================
+; Data Segment
+; ============================================================================
 
-.if _ENABLE_MUSIC
+scene1_data_index:
+.incbin "data/stniccc/index.bin"
+
+scene1_colours_index:
+.incbin "data/stniccc/colours.bin"
+
+.equ scene1_colours_array, scene1_colours_index + 1800
+
+.align 4
+slide_01_lz4:
+.incbin "build/slide_01.lz4"
+
+.align 4
+slide_02_lz4:
+.incbin "build/slide_02.lz4"
+
+.align 4
+slide_03_lz4:
+.incbin "build/slide_03.lz4"
+
+.align 4
+slide_04_lz4:
+.incbin "build/slide_04.lz4"
+
+.align 4
+slide_05_lz4:
+.incbin "build/slide_05.lz4"
+
+.align 4
+patarty_lz4:
+.incbin "build/patarty.lz4"
+
+.align 4
+logo_lz4:
+.incbin "build/logo.lz4"
+
+; ============================================================================
+; Scene1.bin data stream
+; ============================================================================
+
 .p2align 8
-module_data:
-.incbin "data/checknobankh.mod"
-.endif
+scene1_data_stream:
