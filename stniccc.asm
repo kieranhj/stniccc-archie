@@ -465,14 +465,37 @@ screen_cls:
 ; Assets and data
 ; ============================================================================
 
+scene1_filename:
+	.byte "<Demo$Dir>.Scene1",0
+	.align 4
+
+module_filename:
+	.byte "<Demo$Dir>.Music",0
+	.align 4
+
 images_table:
     .long slide_01_lz4-images_table, slide_01_pal_block-images_table
     .long slide_02_lz4-images_table, slide_02_pal_block-images_table
     .long slide_03_lz4-images_table, slide_03_pal_block-images_table
     .long slide_04_lz4-images_table, slide_04_pal_block-images_table
     .long slide_05_lz4-images_table, slide_05_pal_block-images_table
-    .long patarty_lz4-images_table,	 patarty_pal_block-images_table
+    .long slide_06_lz4-images_table, slide_06_pal_block-images_table
+    .long slide_07_lz4-images_table, slide_07_pal_block-images_table
+    .long slide_08_lz4-images_table, slide_08_pal_block-images_table
+    .long slide_09_lz4-images_table, slide_09_pal_block-images_table
+    .long slide_10_lz4-images_table, slide_10_pal_block-images_table
+    .long slide_11_lz4-images_table, slide_11_pal_block-images_table
+    .long slide_12_lz4-images_table, slide_12_pal_block-images_table
+    .long slide_13_lz4-images_table, slide_13_pal_block-images_table
+    .long slide_14_lz4-images_table, slide_14_pal_block-images_table
+    .long slide_15_lz4-images_table, slide_15_pal_block-images_table
+    .long slide_16_lz4-images_table, slide_16_pal_block-images_table
+    .long slide_17_lz4-images_table, slide_17_pal_block-images_table
+    .long slide_18_lz4-images_table, slide_18_pal_block-images_table
+    .long slide_19_lz4-images_table, slide_19_pal_block-images_table
+    .long slide_20_lz4-images_table, slide_20_pal_block-images_table
     .long logo_lz4-images_table, 	 logo_pal_block-images_table
+    .long patarty_lz4-images_table,	 patarty_pal_block-images_table
 
 title_pal_block:
 .incbin "build/title.pal"
@@ -492,6 +515,51 @@ slide_04_pal_block:
 slide_05_pal_block:
 .incbin "build/slide_05.pal"
 
+slide_06_pal_block:
+.incbin "build/slide_06.pal"
+
+slide_07_pal_block:
+.incbin "build/slide_07.pal"
+
+slide_08_pal_block:
+.incbin "build/slide_08.pal"
+
+slide_09_pal_block:
+.incbin "build/slide_09.pal"
+
+slide_10_pal_block:
+.incbin "build/slide_10.pal"
+
+slide_11_pal_block:
+.incbin "build/slide_11.pal"
+
+slide_12_pal_block:
+.incbin "build/slide_12.pal"
+
+slide_13_pal_block:
+.incbin "build/slide_13.pal"
+
+slide_14_pal_block:
+.incbin "build/slide_14.pal"
+
+slide_15_pal_block:
+.incbin "build/slide_15.pal"
+
+slide_16_pal_block:
+.incbin "build/slide_16.pal"
+
+slide_17_pal_block:
+.incbin "build/slide_17.pal"
+
+slide_18_pal_block:
+.incbin "build/slide_18.pal"
+
+slide_19_pal_block:
+.incbin "build/slide_19.pal"
+
+slide_20_pal_block:
+.incbin "build/slide_20.pal"
+
 patarty_pal_block:
 .incbin "build/patarty.pal"
 
@@ -509,26 +577,6 @@ text_01_string:
 text_02_string:
 	.byte 31,14,15,17,15,"A demo by...",0
 	.align 4
-
-scene1_filename:
-	.byte "<Demo$Dir>.Scene1",0
-	.align 4
-
-module_filename:
-	.byte "<Demo$Dir>.Music",0
-	.align 4
-
-; ============================================================================
-; BSS Segment
-; ============================================================================
-
-.p2align 8
-span_buffer_start:
-	.skip 1024, 0
-
-.p2align 8
-span_buffer_end:
-	.skip 1024,0 
 
 ; ============================================================================
 ; Data Segment
@@ -563,12 +611,84 @@ slide_05_lz4:
 .incbin "build/slide_05.lz4"
 
 .align 4
+slide_06_lz4:
+.incbin "build/slide_06.lz4"
+
+.align 4
+slide_07_lz4:
+.incbin "build/slide_07.lz4"
+
+.align 4
+slide_08_lz4:
+.incbin "build/slide_08.lz4"
+
+.align 4
+slide_09_lz4:
+.incbin "build/slide_09.lz4"
+
+.align 4
+slide_10_lz4:
+.incbin "build/slide_10.lz4"
+
+.align 4
+slide_11_lz4:
+.incbin "build/slide_11.lz4"
+
+.align 4
+slide_12_lz4:
+.incbin "build/slide_12.lz4"
+
+.align 4
+slide_13_lz4:
+.incbin "build/slide_13.lz4"
+
+.align 4
+slide_14_lz4:
+.incbin "build/slide_14.lz4"
+
+.align 4
+slide_15_lz4:
+.incbin "build/slide_15.lz4"
+
+.align 4
+slide_16_lz4:
+.incbin "build/slide_16.lz4"
+
+.align 4
+slide_17_lz4:
+.incbin "build/slide_17.lz4"
+
+.align 4
+slide_18_lz4:
+.incbin "build/slide_18.lz4"
+
+.align 4
+slide_19_lz4:
+.incbin "build/slide_19.lz4"
+
+.align 4
+slide_20_lz4:
+.incbin "build/slide_20.lz4"
+
+.align 4
 patarty_lz4:
 .incbin "build/patarty.lz4"
 
 .align 4
 logo_lz4:
 .incbin "build/logo.lz4"
+
+; ============================================================================
+; BSS Segment
+; ============================================================================
+
+.p2align 8
+span_buffer_start:
+	.skip 1024, 0
+
+.p2align 8
+span_buffer_end:
+	.skip 1024,0 
 
 ; ============================================================================
 ; Scene1.bin data stream

@@ -1,4 +1,6 @@
-
+; ============================================================================
+; Events system
+; ============================================================================
 
 ;.equ TRACK_SPEED, 4
 
@@ -39,8 +41,6 @@ events_update:
     ldr lr, [sp], #4			; pull lr from stack
     b events_update             ; repeat until all events processed
 
-.skip 4
-
 do_nothing:
     mov pc, lr
 
@@ -51,6 +51,18 @@ show_pause:
 
 events_ptr:
     .long events_data
+
+; ============================================================================
+; Events data
+;
+; Available functions:
+;   show_image, data = image no.
+;   show_parser = STNICC sequence, clear screen if data = 1 (needed for restarting after image)
+;   parser_set_frame, data = STNICCC frame no. [0-1799]
+;   parser_set_speed, data = frame step (negative for backwards)
+;   parser_set_filter, colour if data = 0, b&w if data = 1 (STNICCC only)
+;   show_text_block, data = text block no.
+; ============================================================================
 
 events_data:
 do_event 0,  0,  show_image, 0              ; slide 1 'back by popular demand'
@@ -88,24 +100,31 @@ do_event 9,  32, parser_set_filter, 1       ; b&w
 do_event 9,  32, parser_set_speed, -3       ; back
 do_event 9,  32, show_parser, 1             ; STNICCC
 
-do_event 11, 0,  show_text_block, 0         ; 'not again?'
+do_event 11, 0,  show_image, 5              ; <placeholder>
 do_event 11, 32, parser_set_filter, 0       ; colour
 do_event 11, 32, parser_set_speed, 1        ; forwards
 do_event 11, 32, show_parser, 1             ; STNICCC
 
-do_event 13, 0,  show_text_block, 1         ; 'a demo by...'
+do_event 13, 0,  show_image, 6              ; <placeholder>
 do_event 13, 32, parser_set_filter, 0       ; colour
 do_event 13, 32, parser_set_speed, 4        ; forwards
 do_event 13, 32, show_parser, 1             ; STNICCC
 
-do_event 14, 0,  show_image, 6              ; Bitshifters
+do_event 14, 0,  show_image, 20             ; Bitshifters logo
 do_event 14, 32, parser_set_filter, 0       ; colour
 do_event 14, 32, parser_set_speed, 1        ; forwards
 do_event 14, 32, show_parser, 1             ; STNICCC
 
-do_event 16, 0,  show_image, 5              ; Patarty
+do_event 16, 0,  show_image, 21             ; Patarty
 do_event 16, 8,  show_parser, 1             ; STNICCC
 
-do_event 0, 0,  exit, 0                    ; end
+; When Tracker module loops around we'll get back to pattern 0
+do_event 0,  0,  exit, 0                    ; end
 
-.skip 4
+; ============================================================================
+; IF YOU GET THE FOLLOWING ERROR MESSAGE WHEN BUILDING:
+; fatal error 8: cannot resolve section <seg8000>, maximum number of passes reached
+; Just keep adding 4 to the number below until it works! (Stupid assembler bug.)
+; ============================================================================
+
+.skip 0

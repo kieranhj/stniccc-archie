@@ -96,7 +96,8 @@ def main(options):
             warned=False
             for i in range(0,3):
                 if (p[i] & 0x0f) != 0 and not warned:
-                    print 'Warning: lost precision for colour',p
+                    if options.loud:
+                        print 'Warning: lost precision for colour',p
                     warned=True
                 pal_data.append(p[i] & 0xf0)
             pal_data.append(0)
@@ -113,7 +114,7 @@ if __name__=='__main__':
 
     parser.add_argument('-o',dest='output_path',metavar='FILE',help='output ARC data to %(metavar)s')
     parser.add_argument('-p',dest='palette_path',metavar='FILE',help='output palette data to %(metavar)s')
-    parser.add_argument('--pad',action='store_true',help='pad palette to 16 entries if fewer')
+    parser.add_argument('--loud',action='store_true',help='display warnings')
     parser.add_argument('input_path',metavar='FILE',help='load PNG data from %(metavar)s')
     parser.add_argument('mode',type=int,help='screen mode')
     main(parser.parse_args())
