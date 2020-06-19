@@ -80,6 +80,55 @@ show_text_block:
     str r0, update_fn_id        ; do_nothing
 	ldr pc, [sp], #4			; rts
 
+fade_to_black:
+	str r0, fade_speed
+	str r0, fade_count
+
+	mov r0, #16
+	str r0, fade_value
+
+	ldr r0, palette_block_addr
+	str r0, fade_from_pal_block
+
+    mov r0, #2
+    str r0, update_fn_id
+    mov pc, lr
+
+update_fade_to_black:
+	str lr, [sp, #-4]!			; push lr on stack
+
+	ldr r0, fade_value
+	ldr r2, fade_from_pal_block
+	bl palette_make_fade_to_black
+	adr r2, palette_interp_block
+	str r2, palette_block_addr
+	bl show_screen_at_vsync
+
+	cmp r0, #0
+	beq .1
+
+	ldr r1, fade_count
+	subs r1, r1, #1
+	ldreq r1, fade_speed
+	subeq r0, r0, #1
+	str r1, fade_count
+	str r0, fade_value
+
+	.1:
+	ldr pc, [sp], #4			; rts
+
+fade_value:
+	.long 0
+
+fade_speed:
+	.long 1
+
+fade_count:
+	.long 0
+
+fade_from_pal_block:
+	.long 0
+
 .if 0
 clock_minutes:
 	.long 6000

@@ -59,6 +59,25 @@ palette_make_greyscale:
     bne .1
 	ldr pc, [sp], #4			; rts
 
+; R0 = [0-16] interpolation
+; R2 = palette block ptr
+palette_make_fade_to_black:
+	str lr, [sp, #-4]!			; push lr on stack
+    adr r1, palette_interp_block
+
+    mov r3, #16
+    .1:
+    ldr r4, [r2], #4            ; rgbx
+
+    mov r5, r4, lsr #4          ; rgbx / 16
+    mul r6, r5, r0              ; r0 * rgbx / 16
+
+    str r6, [r1], #4
+    
+    subs r3, r3, #1
+    bne .1
+	ldr pc, [sp], #4			; rts
+
 palette_osword_block:
     .skip 8
     ; logical colour

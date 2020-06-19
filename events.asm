@@ -66,6 +66,7 @@ events_ptr:
 
 events_data:
 do_event 0,  0,  show_image, 0              ; slide 1 'back by popular demand'
+do_event 0,  0x20, fade_to_black, 2         ; fade to black, speed = 2
 
 do_event 1,  0,  parser_set_frame, 1799
 do_event 1,  0,  parser_set_speed, -1
@@ -140,4 +141,4 @@ do_event 0,  0,  exit, 0                    ; end
 ; Just keep adding 4 to the number below until it works! (Stupid assembler bug.)
 ; ============================================================================
 
-.skip 8
+.skip 0

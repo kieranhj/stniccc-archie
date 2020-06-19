@@ -374,6 +374,7 @@ update_fn_id:
 update_fn_table:
 	b do_nothing
 	b parser_update
+	b update_fade_to_black
 
 error_handler:
 	STMDB sp!, {r0-r2, lr}
