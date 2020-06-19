@@ -66,7 +66,6 @@ events_ptr:
 
 events_data:
 do_event 0,  0,  show_image, 0              ; slide 1 'back by popular demand'
-do_event 0,  0x20, fade_to_black, 2         ; fade to black, speed = 2
 
 do_event 1,  0,  parser_set_frame, 1799
 do_event 1,  0,  parser_set_speed, -1
@@ -93,7 +92,8 @@ do_event 4,  0x20, show_parser, 1           ; STNICCC
 
 do_event 5,  0,  show_image, 4              ; slide 5 'compo filler'
 ;do_event 5,  0x20, parser_set_filter, 1     ; b&w
-do_event 5,  0x20, parser_set_speed, -1     ; backwards
+;do_event 5,  0x20, parser_set_speed, -1     ; backwards
+do_event 5,  0x20,  parser_set_frame, 1350
 do_event 5,  0x20, show_parser, 1           ; STNICCC
 
 do_event 6,  0,  show_image, 5              ; slide 6 'Remain calm'
@@ -114,10 +114,15 @@ do_event 9,  0, show_parser, 1              ; STNICCC
 ;do_event 9,  32, parser_set_speed, -3       ; back
 ;do_event 9,  32, show_parser, 1             ; STNICCC
 
-do_event 9,  8,  parser_set_filter, 2       ; flash white
-do_event 9,  24, parser_set_filter, 2       ; flash white
-do_event 9,  38, parser_set_filter, 2       ; flash white
-do_event 9,  54, parser_set_filter, 2       ; flash white
+do_event 9,  0x8,  parser_set_filter, 2       ; flash white
+do_event 9,  0x18, parser_set_filter, 2       ; flash white
+do_event 9,  0x28, parser_set_filter, 2       ; flash white
+do_event 9,  0x38, parser_set_filter, 2       ; flash white
+
+do_event 10,  0x8,  parser_set_filter, 2       ; flash white
+do_event 10,  0x18, parser_set_filter, 2       ; flash white
+do_event 10,  0x28, parser_set_filter, 2       ; flash white
+do_event 10,  0x38, parser_set_filter, 2       ; flash white
 
 do_event 11, 0,  show_image, 20             ; bitshifters logo
 do_event 11, 32, parser_set_filter, 0       ; colour
