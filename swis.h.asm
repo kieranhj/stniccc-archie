@@ -13,6 +13,8 @@
 .equ OS_ReadVduVariables, 0x31
 .equ OS_ReadMonotonicTime, 0x42
 .equ OS_ReadDynamicArea, 0x5c
+.equ OS_ConvertHex2, 0xd1
+.equ OS_ConvertHex4, 0xd2
 .equ OS_ConvertHex8, 0xd4
 .equ OS_ConvertCardinal1, 0xd5	
 .equ OS_ConvertCardinal4, 0xd8
@@ -42,8 +44,6 @@
 .equ ErrorV, 0x01
 .equ EventV, 0x10
 .equ Event_VSync, 4
-
-.equ OS_ConvertHex4, 0xd2
 
 .equ QTM_Load, 0x47E40
 .equ QTM_Start, 0x47E41

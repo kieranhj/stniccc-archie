@@ -197,6 +197,27 @@ debug_write_vsync_count:
 	mov r0, #30
 	swi OS_WriteC
 
+.if 1
+    ; read current tracker position
+    mov r0, #-1
+    mov r1, #-1
+    swi QTM_Pos
+
+	mov r3, r1
+
+	adr r1, debug_string
+	mov r2, #8
+	swi OS_ConvertHex2
+	adr r0, debug_string
+	swi OS_WriteO
+
+	mov r0, r3
+	adr r1, debug_string
+	mov r2, #8
+	swi OS_ConvertHex2
+	adr r0, debug_string
+	swi OS_WriteO
+.else
 	ldr r0, vsync_count
 	adr r1, debug_string
 	mov r2, #8
@@ -204,6 +225,7 @@ debug_write_vsync_count:
 
 	adr r0, debug_string
 	swi OS_WriteO
+.endif
 	mov pc, r14
 
 debug_string:

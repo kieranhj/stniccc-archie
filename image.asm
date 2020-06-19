@@ -7,9 +7,19 @@ show_image:
 	str lr, [sp, #-4]!			; push lr on stack
     mov r11, r0
 
+	ldr r8, screen_addr			; current screen
+
     ; get a fresh screen bank
     bl get_next_screen_for_writing
 
+	ldr r0, update_fn_id
+	cmp r0, #0					; hackz0r - assume static image
+	bne .1
+
+	; wipe prev screen first
+	bl screen_cls
+
+	.1:
 	; Load image
 	adr r4, images_table
     add r3, r4, r11, lsl #3     ; 8 byte stride

@@ -66,39 +66,52 @@ events_ptr:
 
 events_data:
 do_event 0,  0,  show_image, 0              ; slide 1 'back by popular demand'
-do_event 1,  0,  parser_set_frame, 0
-do_event 1,  0,  parser_set_speed, 1
-do_event 1,  0,  show_parser, 1             ; STNICCC forwards
-do_event 1,  0x2e, parser_set_speed, -1     ; backwards
-do_event 1,  0x30, parser_set_speed, 1      ; forwards
-do_event 1,  0x32, parser_set_speed, -1     ; backwards
-do_event 1,  0x34, parser_set_speed, 1      ; forwards
-do_event 1,  0x36, parser_set_speed, -1     ; backwards
-do_event 1,  0x38, parser_set_speed, 1      ; forwards
 
-do_event 3,  0,  show_image, 1              ; slide 2 'recognise this?'
-do_event 3,  32, show_parser, 1             ; STNICCC
+do_event 1,  0,  parser_set_frame, 1799
+do_event 1,  0,  parser_set_speed, -1
+do_event 1,  0,  show_parser, 1             ; STNICCC forwards
+
+do_event 1,  0x30, parser_set_speed, 1      ; forwards
+do_event 1,  0x34, parser_set_speed, -1     ; backwards
+do_event 1,  0x36, parser_set_speed, 1      ; forwards
+do_event 1,  0x38, parser_set_speed, -2     ; backwards
+
+do_event 2,  0,  show_image, 1              ; slide 2 'recognise this?'
+do_event 2,  0x20, show_parser, 1           ; STNICCC
+
+do_event 3,  0,  show_image, 2              ; slide 3 'yeah?'
+do_event 3,  0x20, show_parser, 1           ; STNICCC
 do_event 3,  0x2e, parser_set_speed, -1     ; backwards
 do_event 3,  0x30, parser_set_speed, 1      ; forwards
 do_event 3,  0x32, parser_set_speed, -1     ; backwards
 do_event 3,  0x34, parser_set_speed, 1      ; forwards
-do_event 3,  0x36, parser_set_speed, -1     ; backwards
-do_event 3,  0x38, parser_set_speed, 1      ; forwards
+do_event 3,  0x38, parser_set_speed, -1     ; backwards 
 
-do_event 5,  0,  show_image, 2              ; slide 3 'yeah?'
-do_event 5,  32, parser_set_filter, 1       ; b&w
-do_event 5,  32, parser_set_speed, -1       ; backwards
-do_event 5,  32, show_parser, 1             ; STNICCC
+do_event 4,  0,  show_image, 3              ; slide 4 'it's called'
+do_event 4,  0x20, show_parser, 1           ; STNICCC
 
-do_event 7,  0,  show_image, 3              ; slide 4 'it's called'
-do_event 7,  32, parser_set_filter, 0       ; colour
-do_event 7,  32, parser_set_speed, 1        ; forwards
+do_event 5,  0,  show_image, 4              ; slide 5 'compo filler'
+;do_event 5,  0x20, parser_set_filter, 1     ; b&w
+do_event 5,  0x20, parser_set_speed, -1     ; backwards
+do_event 5,  0x20, show_parser, 1           ; STNICCC
+
+do_event 6,  0,  show_image, 5              ; slide 6 'Remain calm'
+;do_event 6,  32, parser_set_filter, 0       ; colour
+;do_event 6,  32, parser_set_speed, 1        ; forwards
+do_event 6,  32, show_parser, 1             ; STNICCC
+
+do_event 7,  0,  show_image, 6              ; slide 7 'This demo is short'
+;do_event 7,  32, parser_set_filter, 0       ; colour
+;do_event 7,  32, parser_set_speed, 1        ; forwards
 do_event 7,  32, show_parser, 1             ; STNICCC
 
-do_event 9,  0,  show_image, 4              ; slide 5 'compo filler'
-do_event 9,  32, parser_set_filter, 1       ; b&w
-do_event 9,  32, parser_set_speed, -3       ; back
-do_event 9,  32, show_parser, 1             ; STNICCC
+do_event 8,  0,  show_image, 7              ; slide 7 'The End'
+do_event 8,  0x18,  show_image, 8           ; slide 8 'Only Joking' 
+
+do_event 9,  0, show_parser, 1              ; STNICCC
+;do_event 9,  32, parser_set_filter, 1       ; b&w
+;do_event 9,  32, parser_set_speed, -3       ; back
+;do_event 9,  32, show_parser, 1             ; STNICCC
 
 do_event 11, 0,  show_image, 5              ; <placeholder>
 do_event 11, 32, parser_set_filter, 0       ; colour
@@ -127,4 +140,4 @@ do_event 0,  0,  exit, 0                    ; end
 ; Just keep adding 4 to the number below until it works! (Stupid assembler bug.)
 ; ============================================================================
 
-.skip 0
+.skip 8
