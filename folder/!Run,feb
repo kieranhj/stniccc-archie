@@ -9,5 +9,5 @@ SPRITESIZE 0
 RMKILL MemAlloc 
 
 RMLOAD <Demo$Dir>.QTMModule
-wimpslot -min 800k -max 960k
+wimpslot -min 960k -max 1600k
 <Demo$Dir>.!RunImage
