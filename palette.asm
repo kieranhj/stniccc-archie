@@ -42,11 +42,11 @@ palette_make_greyscale:
     ldr r4, [r2], #4            ; rgbx
 
     mov r5, r4, lsr #2          ; red * 0.25
-    and r5, r5, #0xff
+    and r5, r5, #0xf0
     mov r6, r4, lsr #9          ; green * 0.5
-    and r6, r6, #0xff
+    and r6, r6, #0xf0
     mov r7, r4, lsr #18         ; blue * 0.25
-    and r7, r7, #0xff
+    and r7, r7, #0xf0
     
     add r0, r5, r6
     add r0, r0, r7

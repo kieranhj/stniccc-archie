@@ -60,7 +60,8 @@ events_ptr:
 ;   show_parser = STNICC sequence, clear screen if data = 1 (needed for restarting after image)
 ;   parser_set_frame, data = STNICCC frame no. [0-1799]
 ;   parser_set_speed, data = frame step (negative for backwards)
-;   parser_set_filter, colour if data = 0, b&w if data = 1 (STNICCC only), white flas = 2 (STNICCC only)
+;   parser_set_filter, colour if data = 0, b&w if data = 1 (STNICCC only)
+;                      white flash w/ colour = 2 (STNICCC only), white flash w/ b&w (STNICCC only)
 ;   show_text_block, data = text block no.
 ; ============================================================================
 
@@ -110,19 +111,19 @@ do_event 8,  0,  show_image, 7              ; slide 7 'The End'
 do_event 8,  0x18,  show_image, 8           ; slide 8 'Only Joking' 
 
 do_event 9,  0, show_parser, 1              ; STNICCC
-;do_event 9,  32, parser_set_filter, 1       ; b&w
+do_event 9,  0, parser_set_filter, 1       ; b&w
 ;do_event 9,  32, parser_set_speed, -3       ; back
 ;do_event 9,  32, show_parser, 1             ; STNICCC
 
-do_event 9,  0x8,  parser_set_filter, 2       ; flash white
-do_event 9,  0x18, parser_set_filter, 2       ; flash white
-do_event 9,  0x28, parser_set_filter, 2       ; flash white
-do_event 9,  0x38, parser_set_filter, 2       ; flash white
+do_event 9,  0x8,  parser_set_filter, 3       ; flash white
+do_event 9,  0x18, parser_set_filter, 3       ; flash white
+do_event 9,  0x28, parser_set_filter, 3       ; flash white
+do_event 9,  0x38, parser_set_filter, 3       ; flash white
 
-do_event 10,  0x8,  parser_set_filter, 2       ; flash white
-do_event 10,  0x18, parser_set_filter, 2       ; flash white
-do_event 10,  0x28, parser_set_filter, 2       ; flash white
-do_event 10,  0x38, parser_set_filter, 2       ; flash white
+do_event 10,  0x8,  parser_set_filter, 3       ; flash white
+do_event 10,  0x18, parser_set_filter, 3       ; flash white
+do_event 10,  0x28, parser_set_filter, 3       ; flash white
+do_event 10,  0x38, parser_set_filter, 3       ; flash white
 
 do_event 11, 0,  show_image, 20             ; bitshifters logo
 do_event 11, 32, parser_set_filter, 0       ; colour

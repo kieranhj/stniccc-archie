@@ -64,6 +64,8 @@ parser_update:
     beq .1
 	cmp r0, #2
 	beq .2
+	cmp r0, #3
+	beq .3
 	; b&w
     ldr r2, palette_block_addr
    	bl palette_make_greyscale
@@ -85,6 +87,26 @@ parser_update:
 	streq r1, fade_speed
 	str r0, fade_value
 	cmp r0, #0
+	streq r0, palette_filter
+	b .1
+	.3:
+	; white out w/ b&w
+    ldr r2, palette_block_addr
+   	bl palette_make_greyscale
+	adr r2, palette_interp_block
+	ldr r0, fade_value
+   	bl palette_make_fade_to_white
+	adr r2, palette_interp_block
+	str r2, palette_block_addr
+	
+	ldr r1, fade_speed
+	add r0, r0, r1
+	cmp r0, #16
+	moveq r1, #-2
+	streq r1, fade_speed
+	str r0, fade_value
+	cmp r0, #0
+	moveq r0, #1
 	streq r0, palette_filter
     .1:
 
