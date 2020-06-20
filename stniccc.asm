@@ -154,7 +154,7 @@ events_loop:
 	str r2, last_vsync
 
 	; show debug
-	bl debug_write_vsync_count
+	;bl debug_write_vsync_count
 
 	; handle any events
 	bl events_update
@@ -516,8 +516,8 @@ images_table:
     .long slide_16_lz4-images_table, slide_16_pal_block-images_table
     .long slide_17_lz4-images_table, slide_17_pal_block-images_table
     .long slide_18_lz4-images_table, slide_18_pal_block-images_table
-    .long slide_19_lz4-images_table, slide_19_pal_block-images_table
-    .long slide_20_lz4-images_table, slide_20_pal_block-images_table
+    .long slide_18_lz4-images_table, slide_18_pal_block-images_table
+    .long slide_18_lz4-images_table, slide_18_pal_block-images_table
     .long logo_lz4-images_table, 	 logo_pal_block-images_table
     .long patarty_lz4-images_table,	 patarty_pal_block-images_table
     .long gangster_lz4-images_table, gangster_pal_block-images_table
@@ -579,12 +579,6 @@ slide_17_pal_block:
 
 slide_18_pal_block:
 .incbin "build/slide_18.pal"
-
-slide_19_pal_block:
-.incbin "build/slide_19.pal"
-
-slide_20_pal_block:
-.incbin "build/slide_20.pal"
 
 logo_pal_block:
 .incbin "build/logo.pal"
@@ -693,14 +687,6 @@ slide_17_lz4:
 .align 4
 slide_18_lz4:
 .incbin "build/slide_18.lz4"
-
-.align 4
-slide_19_lz4:
-.incbin "build/slide_19.lz4"
-
-.align 4
-slide_20_lz4:
-.incbin "build/slide_20.lz4"
 
 .align 4
 logo_lz4:

@@ -60,13 +60,13 @@ events_ptr:
 ;   show_parser = STNICC sequence, clear screen if data = 1 (needed for restarting after image)
 ;   parser_set_frame, data = STNICCC frame no. [0-1799]
 ;   parser_set_speed, data = frame step (negative for backwards)
-;   parser_set_filter, colour if data = 0, b&w if data = 1 (STNICCC only)
-;                      white flash w/ colour = 2 (STNICCC only), white flash w/ b&w (STNICCC only)
+;   parser_set_filter, colour if data = 0, b&w if data = 1 (STNICCC only), white flas = 2 (STNICCC only)
 ;   show_text_block, data = text block no.
 ; ============================================================================
 
 events_data:
 do_event 0,  0,  show_image, 0              ; slide 1 'back by popular demand'
+do_event 0,  0x30, fade_to_black, 3         ; fade to black, speed = 2
 
 do_event 1,  0,  parser_set_frame, 1799
 do_event 1,  0,  parser_set_speed, -1
@@ -78,23 +78,25 @@ do_event 1,  0x36, parser_set_speed, 1      ; forwards
 do_event 1,  0x38, parser_set_speed, -2     ; backwards
 
 do_event 2,  0,  show_image, 1              ; slide 2 'recognise this?'
+do_event 2,  0x20,  parser_set_frame, 1700
 do_event 2,  0x20, show_parser, 1           ; STNICCC
 
 do_event 3,  0,  show_image, 2              ; slide 3 'yeah?'
+do_event 3,  0x20,  parser_set_frame, 1650
 do_event 3,  0x20, show_parser, 1           ; STNICCC
-do_event 3,  0x2e, parser_set_speed, -1     ; backwards
-do_event 3,  0x30, parser_set_speed, 1      ; forwards
-do_event 3,  0x32, parser_set_speed, -1     ; backwards
-do_event 3,  0x34, parser_set_speed, 1      ; forwards
-do_event 3,  0x38, parser_set_speed, -1     ; backwards 
+;do_event 3,  0x2e, parser_set_speed, -1     ; backwards
+do_event 3,  0x30, parser_set_speed, 2      ; forwards
+do_event 3,  0x32, parser_set_speed, -2     ; backwards
+do_event 3,  0x34, parser_set_speed, 2      ; forwards
+do_event 3,  0x38, parser_set_speed, -2     ; backwards 
 
 do_event 4,  0,  show_image, 3              ; slide 4 'it's called'
 do_event 4,  0x20, show_parser, 1           ; STNICCC
 
 do_event 5,  0,  show_image, 4              ; slide 5 'compo filler'
 ;do_event 5,  0x20, parser_set_filter, 1     ; b&w
-;do_event 5,  0x20, parser_set_speed, -1     ; backwards
-do_event 5,  0x20,  parser_set_frame, 1350
+do_event 5,  0x20, parser_set_speed, -1     ; backwards
+do_event 5,  0x20,  parser_set_frame, 1375
 do_event 5,  0x20, show_parser, 1           ; STNICCC
 
 do_event 6,  0,  show_image, 5              ; slide 6 'Remain calm'
@@ -105,43 +107,113 @@ do_event 6,  32, show_parser, 1             ; STNICCC
 do_event 7,  0,  show_image, 6              ; slide 7 'This demo is short'
 ;do_event 7,  32, parser_set_filter, 0       ; colour
 ;do_event 7,  32, parser_set_speed, 1        ; forwards
-do_event 7,  32, show_parser, 1             ; STNICCC
+do_event 7,  0x20, show_parser, 1             ; STNICCC
+do_event 7,  0x30, parser_set_speed, 2      ; forwards
+do_event 7,  0x32, parser_set_speed, -2     ; backwards
+do_event 7,  0x34, parser_set_speed, 2      ; forwards
+do_event 7,  0x38, parser_set_speed, -2     ; backwards
+do_event 7,  0x3a, parser_set_speed, 2      ; forwards
+do_event 7,  0x3c, parser_set_speed, -2     ; backwards 
 
-do_event 8,  0,  show_image, 7              ; slide 7 'The End'
-do_event 8,  0x18,  show_image, 8           ; slide 8 'Only Joking' 
+do_event 8,  0,  show_image, 7              ; slide 8 'The End'
+do_event 8,  0x18,  show_image, 8           ; slide 9 'Only Joking' 
 
 do_event 9,  0, show_parser, 1              ; STNICCC
-do_event 9,  0, parser_set_filter, 1       ; b&w
+;do_event 9,  32, parser_set_filter, 1       ; b&w
 ;do_event 9,  32, parser_set_speed, -3       ; back
 ;do_event 9,  32, show_parser, 1             ; STNICCC
 
-do_event 9,  0x8,  parser_set_filter, 3       ; flash white
-do_event 9,  0x18, parser_set_filter, 3       ; flash white
-do_event 9,  0x28, parser_set_filter, 3       ; flash white
-do_event 9,  0x38, parser_set_filter, 3       ; flash white
+do_event 9,  0x8,  parser_set_filter, 2       ; flash white
+do_event 9,  0x18, parser_set_filter, 2       ; flash white
+do_event 9,  0x28, parser_set_filter, 2       ; flash white
+do_event 9,  0x38, parser_set_filter, 2       ; flash white
 
-do_event 10,  0x8,  parser_set_filter, 3       ; flash white
-do_event 10,  0x18, parser_set_filter, 3       ; flash white
-do_event 10,  0x28, parser_set_filter, 3       ; flash white
-do_event 10,  0x38, parser_set_filter, 3       ; flash white
+do_event 0xa,  0,  show_image, 10              ; slide 11 'Well this is fun'
+do_event 0xa,  0x20, show_parser, 1              ; STNICCC
+do_event 0xa,  0x28, parser_set_filter, 2       ; flash white
+do_event 0xa,  0x34, parser_set_filter, 2       ; flash white
+do_event 0xa,  0x3a, parser_set_filter, 2       ; flash white
 
-do_event 11, 0,  show_image, 20             ; bitshifters logo
-do_event 11, 32, parser_set_filter, 0       ; colour
-do_event 11, 32, parser_set_speed, 1        ; forwards
-do_event 11, 32, show_parser, 1             ; STNICCC
+;do_event 0xb, 0,  show_image, 20             ; bitshifters logo
+do_event 0xb, 0,  show_image, 11             ; slide 12 'black and white?'
+do_event 0xb, 0x20, parser_set_filter, 1       ; b@w
+do_event 0xb, 0x20,  parser_set_frame, 300
+do_event 0xb, 0x20, parser_set_speed, 2       ; forwards
+do_event 0xb, 0x20, show_parser, 1             ; STNICCC
+do_event 0xb, 0x28, parser_set_filter, 3       ; flash white to b&w
+do_event 0xb, 0x38, parser_set_filter, 3       ; flash white to b&w
 
-do_event 13, 0,  show_image, 21             ; patarty
-do_event 13, 32, parser_set_filter, 0       ; colour
-do_event 13, 32, parser_set_speed, 4        ; forwards
-do_event 13, 32, show_parser, 1             ; STNICCC
+do_event 0xc, 0,  show_image, 21             ; patarty
+do_event 0xc, 0x20, parser_set_filter, 0       ; colour
+do_event 0xc, 0x20, parser_set_speed, 4        ; forwards
+do_event 0xc, 0x20, show_parser, 1             ; STNICCC
+do_event 0xc, 0x28, parser_set_filter, 2       ; flash white
+do_event 0xc, 0x34, parser_set_filter, 2       ; flash white
+do_event 0xc, 0x3a, parser_set_filter, 2       ; flash white
 
-do_event 14, 0,  show_image, 22             ; gangster
-do_event 14, 32, parser_set_filter, 0       ; colour
-do_event 14, 32, parser_set_speed, 1        ; forwards
-do_event 14, 32, show_parser, 1             ; STNICCC
+do_event 0xd, 0,  show_image, 22             ; pic gangster
+do_event 0xd, 0x20, parser_set_filter, 0       ; colour
+do_event 0xd, 0x20, parser_set_speed, 4        ; forwards
+do_event 0xd, 0x20, show_parser, 1             ; STNICCC
+do_event 0xd, 0x28, parser_set_filter, 2       ; flash white
+do_event 0xd, 0x38, parser_set_filter, 2       ; flash white
 
-do_event 16, 0,  show_image, 23             ; Credits
-do_event 16, 32,  show_parser, 1             ; STNICCC
+do_event 0xe, 0,  show_image, 9             ; slide 10 'avon'
+do_event 0xe, 0x20, parser_set_filter, 0       ; colour
+do_event 0xe, 0x20, parser_set_speed, 4        ; forwards
+do_event 0xe, 0x20, show_parser, 1             ; STNICCC
+do_event 0xe, 0x32, parser_set_filter, 2       ; flash white
+;do_event 0xe, 0x35, parser_set_filter, 2       ; flash white
+do_event 0xe, 0x38, parser_set_filter, 2       ; flash white
+;do_event 0xe, 0x3b, parser_set_filter, 2       ; flash white
+do_event 0xe, 0x3e, parser_set_filter, 2       ; flash white
+
+do_event 0xf, 0,  show_image, 12             ; slide 13 'nearly done'
+
+do_event 0x10,  0,  parser_set_frame, 0
+do_event 0x10, 0, parser_set_filter, 0       ; colour
+do_event 0x10, 0, parser_set_speed, 4        ; forwards
+do_event 0x10, 0, show_parser, 1             ; STNICCC
+do_event 0x10, 0x8, parser_set_filter, 2       ; flash white
+do_event 0x10, 0x18, parser_set_filter, 2       ; flash white
+do_event 0x10, 0x20,  show_image, 15             ; slide 16 'greets 1'
+
+do_event 0x11,  0,  parser_set_frame, 450
+do_event 0x11, 0, parser_set_filter, 0       ; colour
+do_event 0x11, 0, parser_set_speed, 4        ; forwards
+do_event 0x11, 0, show_parser, 1             ; STNICCC
+do_event 0x11, 0x8, parser_set_filter, 2       ; flash white
+do_event 0x11, 0x18, parser_set_filter, 2       ; flash white
+do_event 0x11, 0x20,  show_image, 16             ; slide 17 'greets 2'
+
+do_event 0x12,  0,  parser_set_frame, 900
+do_event 0x12, 0, parser_set_filter, 0       ; colour
+do_event 0x12, 0, parser_set_speed, 4        ; forwards
+do_event 0x12, 0, show_parser, 1             ; STNICCC
+do_event 0x12, 0x8, parser_set_filter, 2       ; flash white
+do_event 0x12, 0x18, parser_set_filter, 2       ; flash white
+do_event 0x12, 0x20,  show_image, 17             ; slide 18 'greets 3'
+
+do_event 0x13,  0,  parser_set_frame, 1350
+do_event 0x13, 0, parser_set_filter, 0       ; colour
+do_event 0x13, 0, parser_set_speed, 4        ; forwards
+do_event 0x13, 0, show_parser, 1             ; STNICCC
+do_event 0x13, 0x8, parser_set_filter, 2       ; flash white
+do_event 0x13, 0x18, parser_set_filter, 2       ; flash white
+do_event 0x13, 0x20,  show_image, 23             ; credits
+
+do_event 0x14, 0,  show_image, 13             ; slide 14 'the end again'
+do_event 0x14, 0x18, fade_to_black, 3         ; fade to black, speed = 2
+
+do_event 0x15, 0,  show_image, 14            ; slide 15 'no, really'
+do_event 0x15, 0x18, fade_to_black, 3         ; fade to black, speed = 2
+
+do_event 0x16, 0,  show_image, 20             ; bitshifters logo'
+do_event 0x16, 0x28, fade_to_black, 2         ; fade to black, speed = 2
+
+
+;do_event 16, 0,  show_image, 23             ; Credits
+;do_event 16, 32,  show_parser, 1             ; STNICCC
 
 ; When Tracker module loops around we'll get back to pattern 0
 do_event 0,  0,  exit, 0                    ; end
@@ -152,4 +224,4 @@ do_event 0,  0,  exit, 0                    ; end
 ; Just keep adding 4 to the number below until it works! (Stupid assembler bug.)
 ; ============================================================================
 
-.skip 4
+.skip 32
