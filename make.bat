@@ -74,7 +74,7 @@ echo Adding files...
 copy folder\*.* "%FOLDER%\*.*"
 copy build\stniccc.bin "%FOLDER%\!RunImage,ff8"
 copy data\stniccc\scene1.bin "%FOLDER%\Scene1,ffd"
-copy data\music\Arc-NIC9.mod "%FOLDER%\Music,001"
+copy data\music\Arc-NIC10.mod "%FOLDER%\Music,001"
 copy data\readme.txt "%FOLDER%\Readme,fff"
 
 echo Copying !folder...
