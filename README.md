@@ -3,7 +3,7 @@ A port of STNICCC-2000 by Oxygene to the Acorn Archimedes.
 
 At least it was supposed to be, it ended up turning into something slightly different!
 
-<img src="https://github.com/kieranhj/stniccc-archie/data/gfx/slide_01.png>
+<img src="https://github.com/kieranhj/stniccc-archie/raw/master/data/gfx/slide_01.png>
 
 ## Back By Popular Demand
 
