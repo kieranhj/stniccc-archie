@@ -1,6 +1,6 @@
 Set Demo$Dir <Obey$Dir>
 |
-RMclear
+RMEnsure UtilityModule 3.50 RMclear
 RMLoad <Demo$Dir>.MemAlloc 
 SCREENSIZE 120K
 |RMASIZE 24K 
