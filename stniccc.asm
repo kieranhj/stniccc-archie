@@ -6,9 +6,10 @@
 .equ _TESTS, 0
 .equ _UNROLL_SPAN, 1
 .equ _DRAW_WIREFRAME, 0
-.equ _ENABLE_MUSIC, 1
 .equ _ALWAYS_CLS, 1
 .equ _NO_WINDOW_CLS, 1
+
+.equ _SYNC_EDITOR, 1
 
 .equ Screen_Banks, 3
 .equ Screen_Mode, 9
@@ -46,9 +47,6 @@ stack_base:
 ; ============================================================================
 ; Main
 ; ============================================================================
-
-wtaf:
-	.skip 24
 
 main:
 	MOV r0,#22	;Set MODE
@@ -90,7 +88,6 @@ main:
     mov r3, #0
 	swi OS_File
 
-.if _ENABLE_MUSIC
 	; Load module
 	adrl r0, module_filename
 	mov r1, #0
@@ -98,7 +95,6 @@ main:
 
 	mov r0, #48
 	swi QTM_SetSampleSpeed
-.endif
 
 	; Clear all screen buffers
 	mov r1, #1
@@ -139,10 +135,6 @@ main:
 	mov r1, #Event_VSync
 	SWI OS_Byte
 
-.if _ENABLE_MUSIC
-	swi QTM_Start
-.endif
-
 events_loop:
 
 	; Block if we've not even had a vsync since last time - we're >50Hz!
@@ -151,13 +143,46 @@ events_loop:
 	ldr r2, vsync_count
 	cmp r1, r2
 	beq .1
+	sub r10, r2, r1			; number of vsyncs since last loop
 	str r2, last_vsync
 
+.if _SYNC_EDITOR
+	bl rocket_get_audio_is_playing
+	ldr r1, audio_is_playing
+	cmp r1, r0
+	beq .5
+	; toggle audio state
+	cmp r0, #0
+	swieq QTM_Pause			; pause
+	beq .5
+	; vsync_to_row
+	ldr r0, sequence_counter
+	bl rocket_vsync_to_pos
+	swi QTM_Pos
+	swi QTM_Start			; play
+	mov r0, #1
+	.5:
+	str r0, audio_is_playing
+	cmp r0, #0
+	beq .3
+	; If audio is playing then we need to drive the vsync counter
+	ldr r0, sequence_counter
+	add r0, r0, r10
+	str r0, sequence_counter
+	bl rocket_set_vsync_count
+	b .4
+	.3:
+	; Otherwise we obtain the vsync counter from the editor.
+	bl rocket_get_vsync_count
+	str r0, sequence_counter
+	.4:
+.endif
+
 	; show debug
-	;bl debug_write_vsync_count
+	bl debug_write_vsync_count
 
 	; handle any events
-	bl events_update
+	;bl events_update
 
 	; do the effect update
 	adr lr, .2
@@ -183,16 +208,6 @@ error_noscreenmem:
 	.byte "Cannot allocate screen memory!"
 	.align 4
 	.long 0
-
-.if 0
-wait_pause:
-	; Wait 4s
-	MOV r0, #OSByte_ReadKey
-	MOV r1, #Wait_Centisecs_lo
-	MOV r2, #Wait_Centisecs_hi
-	SWI OS_Byte
-	mov pc, lr
-.endif
 
 debug_write_vsync_count:
 	mov r0, #30
@@ -249,11 +264,9 @@ exit:
 	mov r0, #19
 	swi OS_Byte
 
-.if _ENABLE_MUSIC
 	; disable music
 	mov r0, #0
 	swi QTM_Stop
-.endif
 
 	; disable vsync event
 	mov r0, #OSByte_EventDisable
@@ -360,9 +373,6 @@ vsync_count:
 last_vsync:
 	.long -1
 
-vsync_final:
-	.long 0
-
 buffer_pending:
 	.long 0
 
@@ -372,9 +382,15 @@ palette_pending:
 update_fn_id:
 	.long 1
 
+audio_is_playing:
+	.long 0
+
+sequence_counter:
+	.long 0
+
 update_fn_table:
 	b do_nothing
-	b parser_update
+	b parser_sync
 	b update_fade_to_black
 
 error_handler:
@@ -478,6 +494,7 @@ screen_cls:
 ; Additional code modules
 ; ============================================================================
 
+.include "rocket.asm"
 .include "events.asm"
 .include "parser.asm"
 .include "palette.asm"

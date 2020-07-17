@@ -217,11 +217,3 @@ do_event 0x16, 0x28, fade_to_black, 2         ; fade to black, speed = 2
 
 ; When Tracker module loops around we'll get back to pattern 0
 do_event 0,  0,  exit, 0                    ; end
-
-; ============================================================================
-; IF YOU GET THE FOLLOWING ERROR MESSAGE WHEN BUILDING:
-; fatal error 8: cannot resolve section <seg8000>, maximum number of passes reached
-; Just keep adding 4 to the number below until it works! (Stupid assembler bug.)
-; ============================================================================
-
-.skip 32

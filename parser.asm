@@ -37,6 +37,39 @@ parser_set_filter:
 	str r0, fade_speed
     mov pc, lr
 
+parser_sync:
+	str lr, [sp, #-4]!
+
+    ; Swap to next screen buffer
+	bl get_next_screen_for_writing
+
+	mov r0, #0		; first track!
+	bl rocket_sync_get_val_hi
+	mov r0, r1
+
+	adrl r4, scene1_colours_index
+	ldrb r5, [r4, r0]				; colour index for this frame
+	adrl r3, scene1_colours_array
+	add r1, r3, r5, lsl #6			; each block is 16 * 4 bytes =64
+	str r1, palette_block_addr
+
+	adrl r2, scene1_data_index
+	ldr r3, [r2, r0, lsl #2]		; offset for this frame number
+
+	adrl r1, scene1_data_stream
+	add r11, r3, r1					; pointer to data for frame
+
+	; PALETTE STUFF HERE!
+
+    ; r11 contains pointer to STNICCC frame data
+	bl parse_frame
+
+	; Display whichever bank we've just written to
+    bl show_screen_at_vsync
+
+    ; return
+	ldr pc, [sp], #4
+
 parser_update:
 	str lr, [sp, #-4]!
 
