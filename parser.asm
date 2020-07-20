@@ -60,6 +60,17 @@ parser_sync:
 	add r11, r3, r1					; pointer to data for frame
 
 	; PALETTE STUFF HERE!
+	mov r0, #2		; grey_scale track
+	bl rocket_sync_get_val_hi
+	cmp r1, #0
+	beq .1
+
+	; Make palette greyscale
+	ldr r2, palette_block_addr
+   	bl palette_make_greyscale
+	adr r2, palette_interp_block
+	str r2, palette_block_addr
+	.1:
 
     ; r11 contains pointer to STNICCC frame data
 	bl parse_frame
