@@ -43,7 +43,7 @@ parser_sync:
     ; Swap to next screen buffer
 	bl get_next_screen_for_writing
 
-	mov r0, #0		; first track!
+	mov r0, #0		; stniccc_frame track
 	bl rocket_sync_get_val_hi
 	mov r0, r1
 

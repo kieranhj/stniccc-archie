@@ -1,0 +1,2 @@
+stniccc_frame
+show_image

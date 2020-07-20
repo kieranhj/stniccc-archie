@@ -11,6 +11,32 @@
     b \func
 .endm
 
+.if 1
+events_update:
+	str lr, [sp, #-4]!			; push lr on stack
+  	mov r0, #1				    ; show_image track
+	bl rocket_sync_get_val_hi
+	ldr r0, last_show_image
+	cmp r0, r1
+	beq .6
+	; display changed
+	mov r0, r1
+	str r1, last_show_image
+    cmp r0, #255
+    bne .7
+    mov r0, #0
+    bl rocket_set_audio_playing ; pause playback
+    b .6
+    .7:
+	cmp r0, #100
+	blge show_parser
+	bllt show_image
+	.6:
+    ldr lr, [sp], #4			; pull lr from stack
+    mov pc, lr
+    
+.else
+
 events_update:
     ; read current tracker position
     mov r0, #-1
@@ -40,6 +66,7 @@ events_update:
     .2:
     ldr lr, [sp], #4			; pull lr from stack
     b events_update             ; repeat until all events processed
+.endif
 
 do_nothing:
     mov pc, lr

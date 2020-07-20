@@ -96,6 +96,11 @@ main:
 	mov r0, #48
 	swi QTM_SetSampleSpeed
 
+.if _SYNC_EDITOR
+    mov r0, #0
+    bl rocket_set_audio_playing ; pause playback
+.endif
+
 	; Clear all screen buffers
 	mov r1, #1
 .1:
@@ -146,6 +151,7 @@ events_loop:
 	sub r10, r2, r1			; number of vsyncs since last loop
 	str r2, last_vsync
 
+	; TODO: wrap this up nicely in the rocket library.
 .if _SYNC_EDITOR
 	bl rocket_get_audio_is_playing
 	ldr r1, audio_is_playing
@@ -175,6 +181,9 @@ events_loop:
 	; Otherwise we obtain the vsync counter from the editor.
 	bl rocket_get_vsync_count
 	str r0, sequence_counter
+	; Still set the Tracker pos for debug
+	bl rocket_vsync_to_pos
+	swi QTM_Pos
 	.4:
 .endif
 
@@ -182,7 +191,7 @@ events_loop:
 	bl debug_write_vsync_count
 
 	; handle any events
-	;bl events_update
+	bl events_update
 
 	; do the effect update
 	adr lr, .2
@@ -388,6 +397,9 @@ audio_is_playing:
 sequence_counter:
 	.long 0
 
+last_show_image:
+	.long -1
+
 update_fn_table:
 	b do_nothing
 	b parser_sync
@@ -494,13 +506,13 @@ screen_cls:
 ; Additional code modules
 ; ============================================================================
 
-.include "rocket.asm"
 .include "events.asm"
 .include "parser.asm"
 .include "palette.asm"
 .include "image.asm"
 .include "plot.asm"
 .include "lz4-decode.asm"
+.include "rocket.asm"
 
 ; ============================================================================
 ; Assets and data
