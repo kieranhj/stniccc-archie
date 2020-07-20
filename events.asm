@@ -76,6 +76,7 @@ show_pause:
     str r0, update_fn_id
     mov pc, lr
 
+.if 0
 events_ptr:
     .long events_data
 
@@ -244,3 +245,4 @@ do_event 0x16, 0x28, fade_to_black, 2         ; fade to black, speed = 2
 
 ; When Tracker module loops around we'll get back to pattern 0
 do_event 0,  0,  exit, 0                    ; end
+.endif

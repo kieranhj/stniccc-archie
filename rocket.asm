@@ -2,6 +2,8 @@
 ; Rocket sync
 ; ============================================================================
 
+.equ Pattern_Max, 23
+
 .if _SYNC_EDITOR
 podule3_base:
     .long 0x300C000
@@ -82,6 +84,13 @@ rocket_vsync_to_pos:
 
     ; R0 = pattern
     subgt r0, r0, #1
+
+    ; clamp to end of song.
+    cmp r0, #Pattern_Max
+    movge r0, #Pattern_Max-1
+    movge r1, #63
+    movge pc, lr
+
     sub r1, r1, r3          ; remove pattern start
     add r2, r2, r0, lsl #3
     ldr r3, [r2, #4]

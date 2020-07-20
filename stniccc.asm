@@ -404,6 +404,7 @@ update_fn_table:
 	b do_nothing
 	b parser_sync
 	b update_fade_to_black
+	b image_sync
 
 error_handler:
 	STMDB sp!, {r0-r2, lr}
@@ -511,8 +512,8 @@ screen_cls:
 .include "palette.asm"
 .include "image.asm"
 .include "plot.asm"
-.include "lz4-decode.asm"
 .include "rocket.asm"
+.include "lz4-decode.asm"
 
 ; ============================================================================
 ; Assets and data

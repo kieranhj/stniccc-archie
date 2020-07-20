@@ -161,6 +161,16 @@ color="ff60b250">
 		<key row="1179" value="0.000000" interpolation="0" />
 	</track>
 	<track name="fade_to_black" folded="0" muteKeyCount="0"
-color="ff4fb292" />
+color="ff4fb292">
+		<key row="48" value="0.990000" interpolation="1" />
+		<key row="60" value="0.000000" interpolation="0" />
+		<key row="64" value="0.990000" interpolation="0" />
+		<key row="1240" value="0.990000" interpolation="1" />
+		<key row="1246" value="0.000000" interpolation="0" />
+		<key row="1248" value="0.990000" interpolation="0" />
+		<key row="1272" value="0.990000" interpolation="1" />
+		<key row="1278" value="0.000000" interpolation="0" />
+		<key row="1280" value="0.990000" interpolation="0" />
+	</track>
 </tracks>
 	</rootElement>

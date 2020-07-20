@@ -29,12 +29,13 @@ show_image:
     add r0, r0, r4
     add r2, r2, r4
     str r2, palette_block_addr
+	str r2, fade_from_pal_block
 
     ; r1 = filename
 	bl decompress_to_screen
 	bl show_screen_at_vsync
 
-    mov r0, #0                  ; do_nothing
+    mov r0, #3                  ; image_sync
     str r0, update_fn_id
 	ldr pc, [sp], #4			; rts
 
@@ -118,6 +119,22 @@ update_fade_to_black:
 
 	.1:
 	ldr pc, [sp], #4			; rts
+
+image_sync:
+	str lr, [sp, #-4]!			; push lr on stack
+
+	mov r0, #4		; fade_to_black track
+	bl rocket_sync_get_val_lo
+
+	mov r0, r1, lsr #12
+	ldr r2, fade_from_pal_block
+	bl palette_make_fade_to_black
+	adr r2, palette_interp_block
+	str r2, palette_block_addr
+	bl show_screen_at_vsync
+
+	ldr pc, [sp], #4			; rts
+
 
 fade_value:
 	.long 0
