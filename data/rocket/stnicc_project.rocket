@@ -46,7 +46,7 @@ color="ffb27474">
 		<key row="832" value="540.000000" interpolation="1" />
 		<key row="864" value="700.000000" interpolation="0" />
 		<key row="896" value="700.000000" interpolation="1" />
-		<key row="928" value="860.000000" interpolation="0" />
+		<key row="928" value="800.000000" interpolation="0" />
 		<key row="960" value="0.000000" interpolation="1" />
 		<key row="992" value="160.000000" interpolation="0" />
 		<key row="1024" value="450.000000" interpolation="1" />
@@ -100,5 +100,67 @@ color="ffb28050">
 		<key row="1280" value="20.000000" interpolation="0" />
 		<key row="1344" value="255.000000" interpolation="0" />
 	</track>
+	<track name="grey_scale" folded="0" muteKeyCount="0"
+color="ffa9b250">
+		<key row="0" value="0.000000" interpolation="0" />
+		<key row="704" value="1.000000" interpolation="0" />
+		<key row="736" value="0.000000" interpolation="0" />
+	</track>
+	<track name="fade_to_white" folded="0" muteKeyCount="0"
+color="ff60b250">
+		<key row="0" value="0.000000" interpolation="0" />
+		<key row="552" value="0.990000" interpolation="1" />
+		<key row="555" value="0.000000" interpolation="0" />
+		<key row="568" value="0.990000" interpolation="1" />
+		<key row="571" value="0.000000" interpolation="0" />
+		<key row="584" value="0.990000" interpolation="1" />
+		<key row="587" value="0.000000" interpolation="0" />
+		<key row="600" value="0.990000" interpolation="1" />
+		<key row="603" value="0.000000" interpolation="0" />
+		<key row="648" value="0.990000" interpolation="1" />
+		<key row="651" value="0.000000" interpolation="0" />
+		<key row="660" value="0.990000" interpolation="1" />
+		<key row="663" value="0.000000" interpolation="0" />
+		<key row="666" value="0.990000" interpolation="1" />
+		<key row="669" value="0.000000" interpolation="0" />
+		<key row="712" value="0.990000" interpolation="1" />
+		<key row="715" value="0.000000" interpolation="0" />
+		<key row="728" value="0.990000" interpolation="1" />
+		<key row="731" value="0.000000" interpolation="0" />
+		<key row="776" value="0.990000" interpolation="1" />
+		<key row="779" value="0.000000" interpolation="0" />
+		<key row="788" value="0.990000" interpolation="1" />
+		<key row="791" value="0.000000" interpolation="0" />
+		<key row="794" value="0.990000" interpolation="1" />
+		<key row="797" value="0.000000" interpolation="0" />
+		<key row="840" value="0.990000" interpolation="1" />
+		<key row="843" value="0.000000" interpolation="0" />
+		<key row="856" value="0.990000" interpolation="1" />
+		<key row="859" value="0.000000" interpolation="0" />
+		<key row="914" value="0.990000" interpolation="1" />
+		<key row="918" value="0.000000" interpolation="0" />
+		<key row="920" value="0.990000" interpolation="1" />
+		<key row="924" value="0.000000" interpolation="1" />
+		<key row="927" value="0.990000" interpolation="1" />
+		<key row="928" value="0.000000" interpolation="0" />
+		<key row="968" value="0.990000" interpolation="1" />
+		<key row="971" value="0.000000" interpolation="0" />
+		<key row="984" value="0.990000" interpolation="1" />
+		<key row="987" value="0.000000" interpolation="0" />
+		<key row="1032" value="0.990000" interpolation="1" />
+		<key row="1035" value="0.000000" interpolation="0" />
+		<key row="1048" value="0.990000" interpolation="1" />
+		<key row="1051" value="0.000000" interpolation="0" />
+		<key row="1096" value="0.990000" interpolation="1" />
+		<key row="1099" value="0.000000" interpolation="0" />
+		<key row="1112" value="0.990000" interpolation="1" />
+		<key row="1115" value="0.000000" interpolation="0" />
+		<key row="1160" value="0.990000" interpolation="1" />
+		<key row="1163" value="0.000000" interpolation="0" />
+		<key row="1176" value="0.990000" interpolation="1" />
+		<key row="1179" value="0.000000" interpolation="0" />
+	</track>
+	<track name="fade_to_black" folded="0" muteKeyCount="0"
+color="ff4fb292" />
 </tracks>
 	</rootElement>

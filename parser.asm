@@ -64,13 +64,24 @@ parser_sync:
 	bl rocket_sync_get_val_hi
 	cmp r1, #0
 	beq .1
-
-	; Make palette greyscale
+	; b&w
 	ldr r2, palette_block_addr
    	bl palette_make_greyscale
 	adr r2, palette_interp_block
 	str r2, palette_block_addr
 	.1:
+
+	mov r0, #3		; fade_to_white track
+	bl rocket_sync_get_val_lo
+	cmp r1, #0
+	beq .2
+	; white out
+    ldr r2, palette_block_addr
+	mov r0, r1, lsr #12
+   	bl palette_make_fade_to_white
+	adr r2, palette_interp_block
+	str r2, palette_block_addr
+	.2:
 
     ; r11 contains pointer to STNICCC frame data
 	bl parse_frame

@@ -1,3 +1,5 @@
 stniccc_frame
 show_image
 grey_scale
+fade_to_white
+fade_to_black
