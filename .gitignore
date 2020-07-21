@@ -3,4 +3,5 @@ compile.txt
 build/
 \!BSAATT/
 \!Demand/
+\!DemandS/
 *.pyc
