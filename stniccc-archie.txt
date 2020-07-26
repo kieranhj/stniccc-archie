@@ -160,3 +160,30 @@ New 'seat of the pants' plan
 State of the demo.
 1. Playing the sequence, stepping N frames each update. Palette modifier optional.
 2. Displaying a static image, for N tracker lines/vsyncs. Source of static image could be text page or decompress.
+
+
+Rocket Runtime
+~~~
+A track is just an array of keys:
+struct track_key {
+	int row;
+	float value;
+	enum key_type type;
+};
+Find nearest floor key.
+Return first/last values at the edges.
+Interpolate value for current float row.
+E.g. linear
+	double t = (row - k[0].row) / (k[1].row - k[0].row);
+	return k[0].value + (k[1].value - k[0].value) * t;
+All look the same and calculate 0 <= t < 1
+Archie struct {
+   u32 type : 8;           // = [0-3]
+   u32 vsyncs_at_row : 24; // = row * vprw
+   u32 value_fp;           // = value * 65536
+}
+Implement naive version first - get it correct then optimise!
+Use a fixed lookup table at runtime for 1/row delta
+Load all four consecutive values into registers anyway.
+Can only move forwards along the track keys in play mode.
+Put enum type as top byte in 
