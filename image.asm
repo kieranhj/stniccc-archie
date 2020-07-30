@@ -54,6 +54,7 @@ decompress_to_screen:
     b unlz4
 
 ; R0 = text block no.
+.if 0 ; debug only
 show_text_block:
 	str lr, [sp, #-4]!			; push lr on stack
 
@@ -82,7 +83,9 @@ show_text_block:
     mov r0, #0
     str r0, update_fn_id        ; do_nothing
 	ldr pc, [sp], #4			; rts
+.endif
 
+.if 0
 fade_to_black:
 	str r0, fade_speed
 	str r0, fade_count
@@ -120,6 +123,8 @@ update_fade_to_black:
 	.1:
 	ldr pc, [sp], #4			; rts
 
+.else
+
 image_sync:
 	str lr, [sp, #-4]!			; push lr on stack
 
@@ -134,7 +139,7 @@ image_sync:
 	bl show_screen_at_vsync
 
 	ldr pc, [sp], #4			; rts
-
+.endif
 
 fade_value:
 	.long 0

@@ -2,8 +2,8 @@
 ; Rocket sync
 ; ============================================================================
 
-.equ Pattern_Max, 23
-.equ Tracks_Max, 5
+.equ Pattern_Max, 23                ; TODO: automate from MOD file.
+.equ Tracks_Max, 5                  ; TODO: automate from tracks_list file.
 
 .if _SYNC_EDITOR
 podule3_base:
@@ -107,6 +107,7 @@ rocket_sync_time_to_music_pos:
     .set \start, \start + \len
 .endm
 
+; TODO: automate from MOD file.
 ; BBPD MOD has short (32 line) patterns at 8, 15, 20, 21.
 rocket_music_pattern_lengths:
     .set ps, 0
@@ -152,10 +153,9 @@ rocket_init_tracks:
     blt .1
     mov pc, lr
 
-; TODO - get values without editor!
 ; R0 = track no.                    ; pass in sync time?
 ; Returns R1 = 16.16 value
-; Trashes R2..
+; Trashes R2..R9
 rocket_sync_get_val:
     ; get track context
     adr r10, tracks_context
@@ -197,14 +197,14 @@ rocket_sync_get_val:
     ; linear: interpolate value
 	; double t = (row - k[0].row) / (k[1].row - k[0].row);
 	; return k[0].value + (k[1].value - k[0].value) * t;
-    sub r6, r6, r4                  ; (k[1].row - k[0].row)
+    sub r6, r6, r4                  ; (k[1].row - k[0].row) ; const for key
     sub r8, r8, r4                  ; (row - k[0].row)
     adr r3, divisor_table
-    ldr r1, [r3, r6, lsl #2]        ; r6 = 1 / (k[1].row - k[0].row) [fp 0.16]
+    ldr r1, [r3, r6, lsl #2]        ; r6 = 1 / (k[1].row - k[0].row) [fp 0.16]  ; const for key
     mul r8, r1, r8                  ; r8 = (row - k[0].row) / (k[1].row - k[0].row) [fp 0.16]
     mov r8, r8, asr #6              ; [fp 0.10]
 
-    sub r7, r7, r5                  ; (k[1].value - k[0].value) [fp 16.16]
+    sub r7, r7, r5                  ; (k[1].value - k[0].value) [fp 16.16]  ; const for key
     mov r7, r7, asr #6              ; [fp 12.10]
     mul r1, r7, r8                  ; (k[1].value - k[0].value) * t [fp 12.20]
     add r1, r5, r1, asr #4          ; k[0].value + (k[1].value - k[0].value) * t [fp 16.16]
@@ -230,9 +230,10 @@ rocket_sync_get_val_hi:
     ldr pc, [sp], #4
 
 tracks_context:
-    .skip 5 * 8
+    .skip Tracks_Max * 8        ; track_ptr - ptr to current key
+                                ; track_end - ptr to last key
 
-; TODO - automate this from track_list file:
+; TODO: automate this from track_list file.
 tracks_table:
     .long track_stniccc_stniccc_frame - tracks_table
     .long track_stniccc_show_image - tracks_table

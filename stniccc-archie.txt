@@ -186,4 +186,10 @@ Implement naive version first - get it correct then optimise!
 Use a fixed lookup table at runtime for 1/row delta
 Load all four consecutive values into registers anyway.
 Can only move forwards along the track keys in play mode.
-Put enum type as top byte in 
+Put enum type as top byte in key time field.
+
+Other option could be to process all tracks at the same point in the
+main demo loop for the current sync time. The tracks would have a state
+or callback attached to them for update with const parameters per key.
+Don't necessarily need to store additional parameters, could compute these
+when moving to a new key.

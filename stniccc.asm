@@ -85,8 +85,8 @@ main:
 	; Load scene1.bin
 	mov r0, #0xff
 	adr r1, scene1_filename
-	adr r2, scene1_data_stream
     mov r3, #0
+	adr r2, scene1_data_stream
 	swi OS_File
 
 	; Load module
@@ -256,6 +256,7 @@ debug_write_vsync_count:
 	adr r0, debug_string
 	swi OS_WriteO
 .else
+	; display vsync count.
 	ldr r0, vsync_count
 	adr r1, debug_string
 	mov r2, #8
@@ -389,7 +390,7 @@ event_handler:
 update_fn_table:
 	b do_nothing
 	b parser_sync
-	b update_fade_to_black
+	b do_nothing	;update_fade_to_black
 	b image_sync
 
 error_handler:
@@ -489,6 +490,10 @@ screen_cls:
 	blt .1
 	mov pc, lr
 
+; ============================================================================
+; Common vars
+; ============================================================================
+
 scr_bank:
 	.long 0
 
@@ -544,6 +549,7 @@ module_filename:
 	.byte "<Demo$Dir>.Music",0
 	.align 4
 
+; TODO: automate this from an asset manifest.
 images_table:
     .long slide_01_lz4-images_table, slide_01_pal_block-images_table
     .long slide_02_lz4-images_table, slide_02_pal_block-images_table
@@ -639,6 +645,7 @@ gangster_pal_block:
 credits_pal_block:
 .incbin "build/credits.pal"
 
+.if 0
 text_blocks_table:
 	.long text_01_string-text_blocks_table
 	.long text_02_string-text_blocks_table
@@ -650,6 +657,7 @@ text_01_string:
 text_02_string:
 	.byte 31,14,15,17,15,"A demo by...",0
 	.align 4
+.endif
 
 ; ============================================================================
 ; Data Segment
@@ -663,6 +671,7 @@ scene1_colours_index:
 
 .equ scene1_colours_array, scene1_colours_index + 1800
 
+; TODO: automate this from an asset manifest.
 .align 4
 slide_01_lz4:
 .incbin "build/slide_01.lz4"
@@ -755,11 +764,11 @@ credits_lz4:
 ; BSS Segment
 ; ============================================================================
 
-.p2align 8
+.align 4
 span_buffer_start:
 	.skip 1024, 0
 
-.p2align 8
+.align 4
 span_buffer_end:
 	.skip 1024,0 
 
@@ -767,5 +776,5 @@ span_buffer_end:
 ; Scene1.bin data stream
 ; ============================================================================
 
-.p2align 8
+.align 4
 scene1_data_stream:

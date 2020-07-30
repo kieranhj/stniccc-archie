@@ -21,22 +21,7 @@ show_parser:
     str r0, update_fn_id
 	ldr pc, [sp], #4                ; rts
 
-parser_set_speed:
-    str r0, forwards_speed
-    mov pc, lr
-
-parser_set_frame:
-    str r0, frame_number
-    mov pc, lr
-
-parser_set_filter:
-    str r0, palette_filter
-	mov r0, #15
-	str r0, fade_value
-	mov r0, #1
-	str r0, fade_speed
-    mov pc, lr
-
+.if 1
 parser_sync:
 	str lr, [sp, #-4]!
 
@@ -91,6 +76,23 @@ parser_sync:
 
     ; return
 	ldr pc, [sp], #4
+
+.else
+parser_set_speed:
+    str r0, forwards_speed
+    mov pc, lr
+
+parser_set_frame:
+    str r0, frame_number
+    mov pc, lr
+
+parser_set_filter:
+    str r0, palette_filter
+	mov r0, #15
+	str r0, fade_value
+	mov r0, #1
+	str r0, fade_speed
+    mov pc, lr
 
 parser_update:
 	str lr, [sp, #-4]!
@@ -183,7 +185,7 @@ parser_update:
 
     ; return
 	ldr pc, [sp], #4
-
+.endif
 
 ; ============================================================================
 ; Parsing the scene1.bin data file
