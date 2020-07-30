@@ -9,7 +9,8 @@
 .equ _ALWAYS_CLS, 1
 .equ _NO_WINDOW_CLS, 1
 
-.equ _SYNC_EDITOR, 1
+.equ _FIX_FRAME_RATE, 0		; useful when debugging as vsync event continues whilst in !DDT
+.equ _SYNC_EDITOR, 0
 
 .equ Screen_Banks, 3
 .equ Screen_Mode, 9
@@ -96,11 +97,6 @@ main:
 	mov r0, #48
 	swi QTM_SetSampleSpeed
 
-.if _SYNC_EDITOR
-    mov r0, #0
-    bl rocket_set_audio_playing ; pause playback
-.endif
-
 	; Clear all screen buffers
 	mov r1, #1
 .1:
@@ -135,6 +131,14 @@ main:
 
 	bl initialise_span_buffer
 
+.if _SYNC_EDITOR
+    mov r0, #0
+    bl rocket_set_audio_playing ; pause playback
+.else
+	bl rocket_init_tracks
+	swi QTM_Start				; start playback
+.endif
+
 	; Enable Vsync event
 	mov r0, #OSByte_EventEnable
 	mov r1, #Event_VSync
@@ -162,8 +166,8 @@ events_loop:
 	swieq QTM_Pause			; pause
 	beq .5
 	; vsync_to_row
-	ldr r0, sequence_counter
-	bl rocket_vsync_to_pos
+	ldr r0, rocket_sync_time
+	bl rocket_sync_time_to_music_pos
 	swi QTM_Pos
 	swi QTM_Start			; play
 	mov r0, #1
@@ -172,19 +176,28 @@ events_loop:
 	cmp r0, #0
 	beq .3
 	; If audio is playing then we need to drive the vsync counter
-	ldr r0, sequence_counter
+	ldr r0, rocket_sync_time
 	add r0, r0, r10
-	str r0, sequence_counter
-	bl rocket_set_vsync_count
+	str r0, rocket_sync_time
+	bl rocket_set_sync_time
 	b .4
 	.3:
 	; Otherwise we obtain the vsync counter from the editor.
-	bl rocket_get_vsync_count
-	str r0, sequence_counter
+	bl rocket_get_sync_time
+	str r0, rocket_sync_time
 	; Still set the Tracker pos for debug
-	bl rocket_vsync_to_pos
+	bl rocket_sync_time_to_music_pos
 	swi QTM_Pos
 	.4:
+.else
+	; Sequence can only move forwards when not connected to editor.
+	ldr r0, rocket_sync_time
+	.if _FIX_FRAME_RATE
+	add r0, r0, #1
+	.else
+	add r0, r0, r10
+	.endif
+	str r0, rocket_sync_time
 .endif
 
 	; show debug
@@ -373,33 +386,6 @@ event_handler:
 	LDMIA sp!, {r2-r12}
 	LDMIA sp!, {r0-r1, pc}
 
-scr_bank:
-	.long 0
-
-vsync_count:
-	.long 0
-
-last_vsync:
-	.long -1
-
-buffer_pending:
-	.long 0
-
-palette_pending:
-	.long 0
-
-update_fn_id:
-	.long 1
-
-audio_is_playing:
-	.long 0
-
-sequence_counter:
-	.long 0
-
-last_show_image:
-	.long -1
-
 update_fn_table:
 	b do_nothing
 	b parser_sync
@@ -503,17 +489,48 @@ screen_cls:
 	blt .1
 	mov pc, lr
 
+scr_bank:
+	.long 0
+
+vsync_count:
+	.long 0
+
+last_vsync:
+	.long -1
+
+buffer_pending:
+	.long 0
+
+palette_pending:
+	.long 0
+
+update_fn_id:
+	.long 1
+
+audio_is_playing:
+	.long 0
+
+rocket_sync_time:
+	.long 0
+
+last_show_image:
+	.long -1
+
+palette_block_addr:
+	.long 0
+
 ; ============================================================================
 ; Additional code modules
 ; ============================================================================
 
-.include "events.asm"
 .include "parser.asm"
-.include "palette.asm"
 .include "image.asm"
+.include "palette.asm"
+.include "events.asm"
 .include "plot.asm"
 .include "rocket.asm"
 .include "lz4-decode.asm"
+.include "plot_unroll.asm"
 
 ; ============================================================================
 ; Assets and data

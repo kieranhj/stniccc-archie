@@ -377,6 +377,3 @@ polygon_list:
 	.long 0, 0
 	.long 0, 0
 	.long 0, 0
-
-palette_block_addr:
-	.long 0

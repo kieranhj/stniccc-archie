@@ -24,6 +24,7 @@ events_update:
 	str r1, last_show_image
     cmp r0, #255
     bne .7
+    ; hacky end of demo event
     mov r0, #0
     bl rocket_set_audio_playing ; pause playback
     b .6
