@@ -10,7 +10,7 @@
 .equ _NO_WINDOW_CLS, 1
 
 .equ _FIX_FRAME_RATE, 0		; useful when debugging as vsync event continues whilst in !DDT
-.equ _SYNC_EDITOR, 0
+.equ _SYNC_EDITOR, 1
 
 .equ Screen_Banks, 3
 .equ Screen_Mode, 9
