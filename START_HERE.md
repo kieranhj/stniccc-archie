@@ -23,8 +23,10 @@ Popular Demand" (Bitshifters, NOVA 2020). Code by kieran, music/sequencing/gfx R
   `!DemandS` and copies it to `..\..\Arculator_V2.0_Windows\hostfs\!DemandS`.
   Caveat: `data\stniccc\scene1.bin` is currently deleted in the working tree, so the copy of
   `Scene1,ffd` fails and `!DemandS` has no scene data.
-- `make-assets.bat` (not wrapped) runs `python bin\png2arc.py`, which is Python 2 code; the
-  converted `build\*.bin/.lz4` files already exist.
+- `make-assets.bat` (not wrapped) runs `python bin\png2arc.py` (Python 3). `bin\png2arc.py` and
+  `bin\arc.py` were ported to Python 3 on 2026-11-22, and `make-assets.bat` regenerates all 74
+  `build\*.bin/.pal/.lz4` files byte-identical to the 2020 ones. `bin\encoder.py` (the scene
+  encoder, not part of the build) is still Python 2.
 - Run: in Arculator 2.0, double-click `!DemandS` in the HostFS filer.
 
 ## Local changes

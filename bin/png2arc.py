@@ -7,7 +7,7 @@ import png,argparse,sys,math,arc
 def save_file(data,path):
     if path is not None:
         with open(path,'wb') as f:
-            f.write(''.join([chr(x) for x in data]))
+            f.write(bytes(data))
 
 ##########################################################################
 ##########################################################################
@@ -42,7 +42,7 @@ def to_box_row_palette_indices(boxed_row_flat_pixel, palette):
 def main(options):
     # Only support MODE 9 for now. MODE 13 coming later.
     if options.mode != 9:
-        print>>sys.stderr,'FATAL: invalid mode: %d'%options.mode
+        print('FATAL: invalid mode: %d'%options.mode, file=sys.stderr)
         sys.exit(1)
 
     pixels_per_byte=2
@@ -52,13 +52,13 @@ def main(options):
 
     width=png_result[0]
     height=png_result[1]
-    print 'Image width: {0} height: {1}'.format(width,height)
+    print('Image width: {0} height: {1}'.format(width,height))
 
     palette = get_palette(png_result[2])
-    print 'Found {0} palette entries.'.format(len(palette))
+    print('Found {0} palette entries.'.format(len(palette)))
     
     if len(palette) > 16:
-        print>>sys.stderr,'FATAL: too many colours: %d'%len(palette)
+        print('FATAL: too many colours: %d'%len(palette), file=sys.stderr)
         sys.exit(1)
 
     # Sort palette by intensity.
@@ -86,9 +86,9 @@ def main(options):
             assert len(xs)==pixels_per_byte
             pixel_data.append(pack(xs))
 
-    assert(len(pixel_data)==width*height/pixels_per_byte)
+    assert(len(pixel_data)==width*height//pixels_per_byte)
     save_file(pixel_data,options.output_path)
-    print 'Wrote {0} bytes Arc data.'.format(len(pixel_data))
+    print('Wrote {0} bytes Arc data.'.format(len(pixel_data)))
 
     if options.palette_path is not None:
         pal_data=[]
@@ -97,13 +97,13 @@ def main(options):
             for i in range(0,3):
                 if (p[i] & 0x0f) != 0 and not warned:
                     if options.loud:
-                        print 'Warning: lost precision for colour',p
+                        print('Warning: lost precision for colour',p)
                     warned=True
                 pal_data.append(p[i] & 0xf0)
             pal_data.append(0)
         assert(len(pal_data)==4*len(palette))
         save_file(pal_data,options.palette_path)
-        print 'Wrote {0} bytes palette data.'.format(len(pal_data))
+        print('Wrote {0} bytes palette data.'.format(len(pal_data)))
 
 
 ##########################################################################

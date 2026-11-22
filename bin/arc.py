@@ -123,7 +123,7 @@ transparent.
             row=[]
             for x in range(0,len(pixels[y]),4):
                 if pixels[y][x+0]!=pixels[y][x+1]:
-                    print>>sys.stderr,'pixel at (%d,%d) is different from pixel at (%d,%d)'%(x+0,y,x+1,y)
+                    print('pixel at (%d,%d) is different from pixel at (%d,%d)'%(x+0,y,x+1,y), file=sys.stderr)
                     #good=False
 
                 row.append(pixels[y][x+0])
@@ -144,7 +144,7 @@ transparent.
                             p[2]==transparent_rgb[2]):
                 if transparent_physical_index is None:
                     if print_warnings:
-                        print>>sys.stderr,'invalid transparency'
+                        print('invalid transparency', file=sys.stderr)
                     pidx=-1
                     #raise ValueError('invalid transparency')
                 else:
@@ -153,7 +153,7 @@ transparent.
                 pidx=find_closest_fixed(p)
                 if pidx is None:
                     if print_warnings:
-                        print>>sys.stderr,'failed to match fixed_16 for RGB (%d,%d,%d)'%(p[0],p[1],p[2])
+                        print('failed to match fixed_16 for RGB (%d,%d,%d)'%(p[0],p[1],p[2]), file=sys.stderr)
                     pidx=0
 
             else:
@@ -161,7 +161,7 @@ transparent.
                     if p[i]!=0 and p[i]!=255:
                         p=find_closest_rgb(p)
                         if print_warnings:
-                            print>>sys.stderr,'Non-BBC Micro colour %s at (%d,%d) - using %s'%(pixels[y][x],x,y,p)
+                            print('Non-BBC Micro colour %s at (%d,%d) - using %s'%(pixels[y][x],x,y,p), file=sys.stderr)
                         break
 
                 pidx=rgbs.index((p[0],p[1],p[2]))
