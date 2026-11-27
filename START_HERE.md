@@ -20,7 +20,7 @@ Popular Demand" (Bitshifters, NOVA 2020). Code by kieran, music/sequencing/gfx R
 
 ## Build and run
 - `make`: runs `make.bat` (works, 2026-11-22, with a caveat): assembles `build\stniccc.bin`, builds
-  `!DemandS` and copies it to `..\..\Arculator_V2.0_Windows\hostfs\!DemandS`.
+  `!DemandS` and copies it to `..\..\Arculator\hostfs\!DemandS`.
   Caveat: `data\stniccc\scene1.bin` is currently deleted in the working tree, so the copy of
   `Scene1,ffd` fails and `!DemandS` has no scene data.
 - `make-assets.bat` (not wrapped) runs `python bin\png2arc.py` (Python 3). `bin\png2arc.py` and
